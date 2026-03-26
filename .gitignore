@@ -21,6 +21,10 @@ env/
 .DS_Store
 Thumbs.db
 
+# Virtual environment — never commit this
+.venv/
+venv/
+
 # IDE
 .vscode/
 .idea/
