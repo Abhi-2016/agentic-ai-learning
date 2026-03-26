@@ -20,12 +20,52 @@ The **Research Synthesizer** is a single autonomous agent that:
 
 1. Takes any research topic as input
 2. Plans its own research strategy (without user intervention)
-3. Searches the web for peer-reviewed and credible sources
-4. Reads and evaluates each source for relevance
-5. Saves confirmed findings to persistent memory
-6. Synthesizes a grounded, cited research paper — and stops when its own stopping criteria are met
+3. Searches the web for peer-reviewed and credible sources via the Tavily API
+4. Reads and evaluates each source for relevance using BeautifulSoup
+5. Saves confirmed findings to persistent memory (`scratchpad.json`)
+6. Synthesizes a grounded, cited research paper — and stops only when its own stopping criteria are met
 
 It does this in a loop, without human input between steps. That loop is the difference between a chatbot and an agent.
+
+---
+
+## Live Agent Output
+
+Every iteration prints the agent's full reasoning trace — the Thought before every action, and a human-readable description of what it's doing:
+
+```
+============================================================
+Research Synthesizer — Topic: Impact of AI on social media
+============================================================
+
+[Iteration 1/20]
+────────────────────────────────────────────────────────────
+  💭 Agent Thought:
+
+     I have the topic but no sources yet. My first step should be to
+     search for peer-reviewed research on AI's impact on social media.
+     Rationale: I need credible sources before I can read or save anything.
+     Tool: search_web
+     Expected outcome: A list of URLs I can evaluate for relevance.
+────────────────────────────────────────────────────────────
+
+  🔍 Searching the web for: "impact of AI on social media peer-reviewed 2024"
+
+  ✅ Result preview: Search results for '...' 1. The Impact of AI on S...
+
+[Iteration 2/20]
+
+  📄 Reading page: https://ijraset.com/research-paper/...
+
+  💾 Saving finding to scratchpad:
+     Source: https://ijraset.com/...
+     Author: Soni et al. (IJRASET) (2025)
+     Finding: AI technologies like machine learning, deep learning...
+
+  Scratchpad: 1/3 sources saved
+```
+
+The Thought trace is the agent's audit log — every decision is visible and debuggable.
 
 ---
 
@@ -42,16 +82,16 @@ Every action the agent takes is preceded by a written Thought. This is not optio
 │  User Input                                         │
 │      │                                              │
 │      ▼                                              │
-│  ┌─────────┐    Thought (rationale + next action)   │
+│  ┌─────────┐    💭 Thought (rationale + next action) │
 │  │   LLM   │ ──────────────────────────────────►   │
 │  │ (Claude)│                                        │
 │  └─────────┘ ◄── Observation (tool result)          │
 │      │                                              │
 │      ▼                                              │
 │  Tool Dispatcher                                    │
-│  ├── search_web       → web search API              │
-│  ├── read_page_contents → page scraper              │
-│  └── save_note        → scratchpad.json             │
+│  ├── 🔍 search_web       → Tavily Search API        │
+│  ├── 📄 read_page_contents → requests + BS4         │
+│  └── 💾 save_note        → scratchpad.json          │
 │                                                     │
 │  Loop continues until stopping condition is met     │
 └─────────────────────────────────────────────────────┘
@@ -78,13 +118,13 @@ Tools are the agent's hands — how it reaches outside itself to act on the worl
 The three tools and their boundaries:
 
 ```
-search_web          → discovers sources (returns URLs + snippets)
+🔍 search_web          → Tavily API (discovers sources, returns URLs + snippets)
        │
        ▼ (only if snippet looks promising)
-read_page_contents  → reads full content of a URL
-       │
+📄 read_page_contents  → requests + BeautifulSoup (reads full page, strips noise,
+       │                  truncates to 8000 chars to protect context window)
        ▼ (only if content is relevant and credible)
-save_note           → writes confirmed finding to scratchpad.json
+💾 save_note           → writes confirmed finding to scratchpad.json
 ```
 
 Critically, each tool description explicitly states **when NOT to use it**. Without this, the LLM defaults to the most familiar tool for every task.
@@ -94,11 +134,11 @@ Critically, each tool description explicitly states **when NOT to use it**. With
 ## Key Concepts Demonstrated
 
 ### 1. System Prompt as a Product Spec
-The system prompt is the agent's job description, operating constraints, and uncertainty-handling playbook — all in one. A vague system prompt produces a vague agent. Key elements:
-- Specific, measurable stopping condition (not "do a good job")
+The system prompt is the agent's job description, operating constraints, and uncertainty-handling playbook — all in one. Written by hand (not generated) to force real architectural decisions:
+- Specific, measurable stopping condition (3 sources + structured paper ≤ 1000 words)
 - Explicit tool boundaries (when to use each, and when not to)
-- Defined behaviour for every failure mode (no results, gibberish input, errors)
-- Mandatory reasoning step before every action
+- Defined behaviour for 5 distinct failure modes
+- Mandatory reasoning step (Thought) before every action
 
 ### 2. The Stopping Problem
 When does an agent know it's done? This is one of the hardest unsolved problems in agentic AI. This agent implements two-layer stopping:
@@ -107,7 +147,10 @@ When does an agent know it's done? This is one of the hardest unsolved problems 
 
 If the LLM stops early, it gets sent back. Trust but verify.
 
-### 3. Flow Types
+### 3. Thought Traces as Audit Logs
+Every action is preceded by a printed Thought showing rationale, chosen tool, and expected outcome. This is the ReAct pattern made visible. In production, this trace is how you debug failures — without it, you're flying blind.
+
+### 4. Flow Types
 | Flow | Where It Appears |
 |---|---|
 | **Sequential** | Search → Read → Save → Synthesise |
@@ -115,7 +158,7 @@ If the LLM stops early, it gets sent back. Trust but verify.
 | **Loop** | Keep searching until 3 sources are saved |
 | **Parallel** | (Week 2) Fan-out to multiple sources simultaneously |
 
-### 4. Evals (Week 2)
+### 5. Evals (Week 2 — in progress)
 Four evaluation dimensions, each taught before built:
 
 | Eval | What It Measures | Method |
@@ -134,11 +177,11 @@ Four evaluation dimensions, each taught before built:
 ```
 research-synthesizer/
 ├── agent.py            # The ReAct loop — the heart of the agent
-├── tools.py            # Tool schemas (LLM-facing) + execution functions (Python-facing)
+├── tools.py            # Tool schemas (LLM-facing) + live execution functions
 ├── system_prompt.txt   # The agent's operating instructions (written by hand, not generated)
 ├── scratchpad.json     # Persistent memory — survives restarts
-├── requirements.txt    # anthropic SDK only
-└── evals/              # (Week 2) Evaluation suite
+├── requirements.txt    # anthropic, requests, beautifulsoup4
+└── evals/              # (Week 2) Evaluation suite — in progress
     ├── eval_grounding.py
     ├── eval_factuality.py
     ├── eval_completeness.py
@@ -150,21 +193,22 @@ research-synthesizer/
 ## How to Run
 
 ```bash
-# 1. Install dependencies
+# 1. Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Set your Anthropic API key
+# 3. Set API keys
 export ANTHROPIC_API_KEY=your_key_here
-
-# 3. (Optional) Add Tavily for live web search
-pip install tavily-python
-export TAVILY_API_KEY=your_key_here
+export TAVILY_API_KEY=your_key_here  # Free tier at app.tavily.com
 
 # 4. Run the agent
 python agent.py "Impact of AI on healthcare"
 ```
 
-The agent will print every iteration — tool calls, inputs, results, and scratchpad count — so you can watch the ReAct loop in action.
+Watch the terminal — every iteration shows the agent's Thought, the tool it chose, and the result. The scratchpad count climbs to 3, then the paper is written.
 
 ---
 
@@ -179,6 +223,9 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] ReAct pattern (Thought → Action → Observation loop)
 - [x] Memory types (context window vs. persistent scratchpad)
 - [x] ReAct scaffold + tool dispatcher built
+- [x] Live tool wiring (Tavily search + BeautifulSoup scraper)
+- [x] Agent Thought traces surfaced in terminal output
+- [x] Agent verified working end-to-end ✅
 
 ### Week 2 — Evals 🔄
 - [ ] Grounding eval (rule-based citation checker)
@@ -200,14 +247,33 @@ This project is being built incrementally, with each concept quizzed and underst
 
 ---
 
+## Git Workflow
+
+Every feature is developed on a branch, reviewed as a PR, and merged only after explicit approval:
+
+```
+main (stable — always working)
+  └── feature/<name>
+        └── commit, commit
+              └── PR → review → approved → merge
+```
+
+| PR | Branch | What It Delivered |
+|---|---|---|
+| #1 | `feature/wire-real-tools` | Live Tavily + BeautifulSoup implementations |
+| #2 | `feature/richer-agent-logging` | Agent Thought traces + human-readable action logs |
+
+---
+
 ## Technical Stack
 
 | Component | Technology | Why |
 |---|---|---|
-| LLM | Claude (Anthropic) | Native tool use, strong reasoning, Anthropic SDK |
-| Web search | Tavily API | Clean structured results, free tier |
-| Persistent memory | JSON file (`scratchpad.json`) | Simple, inspectable, no infrastructure |
-| Language | Python 3.11+ | Standard for AI/ML tooling |
+| LLM | Claude (Anthropic) | Native tool use, strong reasoning, transparent Thought traces |
+| Web search | Tavily API | Purpose-built for LLM agents, structured results, free tier |
+| Page reading | requests + BeautifulSoup | No JS rendering needed for research papers; lightweight |
+| Persistent memory | `scratchpad.json` | Simple, inspectable, no infrastructure — open it and read it |
+| Language | Python 3.9+ | Standard for AI/ML tooling |
 
 ---
 
