@@ -101,18 +101,40 @@ def run_agent(topic: str) -> str:
             tool_results = []
 
             for block in response.content:
+
+                # ── Print the Thought (the "R" in ReAct) ─────────────────────
+                # Text blocks that appear before a tool_use block ARE the agent's
+                # reasoning — this is exactly the Thought step from Quiz 3.
+                # Printing it makes the agent's decision-making fully visible.
+                if hasattr(block, "text") and block.text.strip():
+                    print(f"\n{'─'*60}")
+                    print(f"  💭 Agent Thought:\n")
+                    # Indent each line for readability
+                    for line in block.text.strip().splitlines():
+                        print(f"     {line}")
+                    print(f"{'─'*60}")
+
                 if block.type == "tool_use":
 
                     tool_name = block.name
                     tool_input = block.input
 
-                    print(f"\n  → Tool call: {tool_name}")
-                    print(f"    Input: {json.dumps(tool_input, indent=6)}")
+                    # ── Human-readable action log ─────────────────────────────
+                    if tool_name == "search_web":
+                        print(f"\n  🔍 Searching the web for: \"{tool_input.get('query')}\"")
+                    elif tool_name == "read_page_contents":
+                        print(f"\n  📄 Reading page: {tool_input.get('url')}")
+                    elif tool_name == "save_note":
+                        print(f"\n  💾 Saving finding to scratchpad:")
+                        print(f"     Source: {tool_input.get('source_url')}")
+                        print(f"     Author: {tool_input.get('author_or_org')} ({tool_input.get('year')})")
+                        print(f"     Finding: {tool_input.get('finding', '')[:120]}...")
 
                     # ── Execute the tool (calls tools.py dispatch_tool) ───────
                     result = dispatch_tool(tool_name, tool_input)
 
-                    print(f"    Result preview: {str(result)[:120]}...")
+                    # Show a brief result preview — enough to see what came back
+                    print(f"\n  ✅ Result preview: {str(result)[:200]}...")
 
                     # ── Append Observation to context window ──────────────────
                     # This is the "O" in ReAct: Reason → Act → Observe → (loop)
@@ -136,6 +158,18 @@ def run_agent(topic: str) -> str:
 
         # ── Path B: Final answer ──────────────────────────────────────────────
         elif response.stop_reason == "end_turn":
+
+            # Print any final Thought the agent wrote before concluding
+            for block in response.content:
+                if hasattr(block, "text") and block.text.strip():
+                    # Check if this looks like a Thought (not the final paper)
+                    text = block.text.strip()
+                    if text.lower().startswith("thought") or text.lower().startswith("rationale"):
+                        print(f"\n{'─'*60}")
+                        print(f"  💭 Agent Thought:\n")
+                        for line in text.splitlines():
+                            print(f"     {line}")
+                        print(f"{'─'*60}")
 
             # Extract the text content from the response
             final_text = ""
