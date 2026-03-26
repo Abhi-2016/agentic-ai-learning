@@ -6,14 +6,22 @@ Each tool has:
     (Remember Quiz 2: the description IS the product decision.)
   - A function: the actual code that runs when the agent calls the tool.
 
-In a real production agent, these would call real APIs (Tavily, Browserless, a vector DB).
-For learning, they use the Anthropic API's built-in web search via tool_use,
-and a local JSON file as the scratchpad.
+Tool implementations:
+  - search_web        → Tavily Search API (set TAVILY_API_KEY env var)
+  - read_page_contents → requests + BeautifulSoup (no key needed)
+  - save_note         → local scratchpad.json (persistent memory)
 """
 
 import json
 import os
+import requests
+from bs4 import BeautifulSoup
 from pathlib import Path
+
+# Max characters to return from a page — full pages can be 100k+ chars and
+# will overflow the context window. 8000 chars (~2000 tokens) is enough to
+# extract meaningful findings without blowing up the agent's memory.
+MAX_PAGE_CHARS = 8_000
 
 # ── Scratchpad location ──────────────────────────────────────────────────────
 # This is the PERSISTENT memory (Quiz 4: survives restarts, external to script).
@@ -125,40 +133,125 @@ TOOLS = [
 
 def execute_search_web(query: str) -> str:
     """
-    STUB: In production, this calls a real search API (e.g. Tavily, SerpAPI).
-    For now, returns a placeholder so you can see the tool call flow.
-    Replace the body of this function with a real API call when ready.
+    Searches the web using the Tavily API and returns a list of results.
+
+    Tavily is purpose-built for LLM agents — it returns clean, structured
+    results rather than raw HTML, which makes it much easier for the agent
+    to reason about what to read next.
+
+    Requires: TAVILY_API_KEY environment variable.
+    Get a free key at: https://app.tavily.com (free tier: 1000 searches/month)
     """
-    # TODO: Replace with real search API
-    # Example with Tavily:
-    #   from tavily import TavilyClient
-    #   client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-    #   results = client.search(query)
-    #   return json.dumps(results["results"])
-    return (
-        f"[STUB] search_web called with query: '{query}'\n"
-        "Replace this stub with a real search API (e.g. Tavily) to get live results.\n"
-        "Expected return format: list of {url, title, snippet} objects."
-    )
+    api_key = os.environ.get("TAVILY_API_KEY")
+    if not api_key:
+        return (
+            "[error] TAVILY_API_KEY environment variable not set. "
+            "Get a free key at https://app.tavily.com and run: "
+            "export TAVILY_API_KEY=your_key_here"
+        )
+
+    try:
+        # Tavily's /search endpoint — optimised for LLM agent use
+        response = requests.post(
+            "https://api.tavily.com/search",
+            json={
+                "api_key": api_key,
+                "query": query,
+                "search_depth": "advanced",   # deeper crawl for research queries
+                "max_results": 5,             # enough to evaluate, not overwhelming
+                "include_answer": False,      # we want sources, not a pre-baked answer
+            },
+            timeout=15
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # Format results as a clean, readable list for the agent
+        results = data.get("results", [])
+        if not results:
+            return f"No results found for query: '{query}'. Try a more specific search term."
+
+        formatted = []
+        for i, r in enumerate(results, 1):
+            formatted.append(
+                f"{i}. {r.get('title', 'No title')}\n"
+                f"   URL: {r.get('url', '')}\n"
+                f"   Snippet: {r.get('content', '')[:300]}..."
+            )
+
+        return f"Search results for '{query}':\n\n" + "\n\n".join(formatted)
+
+    except requests.exceptions.Timeout:
+        return "[error] Search timed out. Try again or use a more specific query."
+    except requests.exceptions.RequestException as e:
+        return f"[error] Search failed: {str(e)}"
 
 
 def execute_read_page_contents(url: str) -> str:
     """
-    STUB: In production, this calls a headless browser or scraping API.
-    Replace with a real implementation when ready.
+    Fetches a URL and returns its cleaned text content.
+
+    Uses requests to fetch the page and BeautifulSoup to strip HTML tags,
+    nav elements, footers, and scripts — leaving just the readable content.
+
+    Why truncate? Full pages can be 50,000–200,000 characters. Feeding that
+    raw into the context window would consume most of the agent's token budget
+    on a single page. We take the first MAX_PAGE_CHARS characters, which is
+    enough to evaluate relevance and extract key findings.
+
+    Note: Some pages (paywalled journals, JS-rendered SPAs) will return
+    limited content. This is expected — the agent should move on if a page
+    returns less than ~500 characters of meaningful text.
     """
-    # TODO: Replace with real page reader
-    # Example with requests + BeautifulSoup:
-    #   import requests
-    #   from bs4 import BeautifulSoup
-    #   response = requests.get(url, timeout=10)
-    #   soup = BeautifulSoup(response.text, "html.parser")
-    #   return soup.get_text(separator="\n", strip=True)
-    return (
-        f"[STUB] read_page_contents called with url: '{url}'\n"
-        "Replace this stub with a real scraper to get live page content.\n"
-        "Expected return format: full text content of the page."
-    )
+    headers = {
+        # Polite browser-like user agent — reduces 403 rejections from servers
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Remove elements that add noise but no content
+        for tag in soup(["script", "style", "nav", "footer", "header",
+                         "aside", "advertisement", "cookie-banner"]):
+            tag.decompose()
+
+        # Extract clean text
+        text = soup.get_text(separator="\n", strip=True)
+
+        # Collapse excessive blank lines
+        lines = [line for line in text.splitlines() if line.strip()]
+        clean_text = "\n".join(lines)
+
+        # Truncate to context-window-safe size
+        if len(clean_text) > MAX_PAGE_CHARS:
+            clean_text = clean_text[:MAX_PAGE_CHARS] + (
+                f"\n\n[Content truncated at {MAX_PAGE_CHARS} characters. "
+                "This is the most relevant portion of the page.]"
+            )
+
+        if len(clean_text) < 200:
+            return (
+                f"[warning] Page at {url} returned very little content ({len(clean_text)} chars). "
+                "It may be paywalled, JS-rendered, or require authentication. "
+                "Consider trying a different source.\n\n" + clean_text
+            )
+
+        return f"Content from {url}:\n\n{clean_text}"
+
+    except requests.exceptions.Timeout:
+        return f"[error] Timed out reading {url}. The page took too long to respond."
+    except requests.exceptions.HTTPError as e:
+        return f"[error] HTTP {e.response.status_code} reading {url}. Try a different source."
+    except requests.exceptions.RequestException as e:
+        return f"[error] Could not read {url}: {str(e)}"
 
 
 def execute_save_note(finding: str, source_url: str, author_or_org: str, year: str) -> bool:
