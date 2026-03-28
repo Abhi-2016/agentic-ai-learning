@@ -54,6 +54,9 @@ import argparse
 import anthropic
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()  # loads .env from project root into os.environ
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).parent.parent
