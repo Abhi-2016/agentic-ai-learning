@@ -67,19 +67,30 @@ Branch naming: `feature/week2-evals`, `feature/week3-multi-agent`, `feature/week
 cd ~/Documents/research-synthesizer
 source .venv/bin/activate    # venv lives at .venv/ — already created
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...
-export TAVILY_API_KEY=...     # free at app.tavily.com
+
+# API keys live in .env — copy the template and fill in your keys
+cp .env.example .env
+# edit .env: add ANTHROPIC_API_KEY and TAVILY_API_KEY
+# Keys are loaded automatically via python-dotenv — no export needed
+
 python agent.py "your topic"
 ```
 
-### What's Next (Week 2 — Evals)
-Four evals to build, each gated by a quiz:
-1. **Grounding eval** — does every claim have a traceable citation? (rule-based)
-2. **Factuality eval** — are the claims true? (LLM-as-judge)
-3. **Completeness eval** — did it cover all required sections? (rubric-based)
-4. **Efficiency eval** — quality per tool call (ratio metric)
+### Full Eval Pipeline (run after agent produces a paper)
+```bash
+python agent.py "your topic" > last_paper.txt  # produce the paper
+python evals/eval_grounding.py                  # Eval 1: citation coverage
+python evals/eval_factuality.py                 # Eval 2: LLM-as-judge
+python evals/eval_factuality.py --human-review  # Eval 2 with calibration spot-check
+```
 
-Evals go in an `evals/` directory. Branch: `feature/week2-evals`.
+### What's Built (Week 2 — Evals 🔄)
+| Eval | Status | Method |
+|---|---|---|
+| Grounding | ✅ Built | Rule-based citation checker |
+| Factuality | ✅ Built | LLM-as-judge (claude-haiku) + `--human-review` calibration |
+| Completeness | ⏳ Next | Rubric-based section coverage |
+| Efficiency | ⏳ Pending | Quality per tool call ratio |
 
 ---
 
@@ -138,10 +149,17 @@ research-synthesizer/
 ├── tools.py            # Tool schemas (LLM-facing) + live execution functions
 ├── system_prompt.txt   # Agent's operating instructions — written by Abhishek
 ├── scratchpad.json     # Persistent memory store — contains findings from last run
-├── requirements.txt    # anthropic, requests, beautifulsoup4
+├── requirements.txt    # anthropic, requests, beautifulsoup4, python-dotenv
+├── .env                # API keys — gitignored, never committed
+├── .env.example        # Key template — committed, safe (no real values)
 ├── .venv/              # Python virtual environment (gitignored)
 ├── README.md           # Public-facing project showcase
-└── CLAUDE.md           # This file — internal context for Claude Code
+├── CLAUDE.md           # This file — internal context for Claude Code
+└── evals/
+    ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
+    ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + human-review calibration
+    ├── eval_completeness.py  # ⏳ Eval 3: rubric-based section coverage
+    └── eval_efficiency.py    # ⏳ Eval 4: quality per tool call
 ```
 
 ---
@@ -166,6 +184,9 @@ Hard ceiling to prevent runaway loops during development. The agent completed it
 ### Why the agent gets sent back if it stops early
 The stopping condition in `agent.py` verifies the scratchpad independently of the LLM's self-report. LLMs can become overconfident and stop early — the system catches it. This is the "trust but verify" pattern.
 
+### Why `.env` via python-dotenv instead of `export`
+Exporting keys per session is error-prone and easy to forget. `python-dotenv` reads `.env` at import time, injecting values into `os.environ` before any tool or API call. The `.env` file is gitignored by `*.env` pattern. `.env.example` is committed so any future collaborator knows exactly what keys are needed.
+
 ---
 
 ## Conventions for This Project
@@ -185,7 +206,7 @@ The stopping condition in `agent.py` verifies the scratchpad independently of th
 | Week | Focus | Status |
 |---|---|---|
 | 1 | Agent foundations (ReAct, tools, memory, logging) | ✅ Complete |
-| 2 | Evals (grounding, factuality, completeness, efficiency) | 🔄 Next |
+| 2 | Evals (grounding, factuality, completeness, efficiency) | 🔄 In Progress |
 | 3 | Agent 2: Multi-agent PM Interview Coach | ⏳ Pending |
 | 4 | Meta-evals + Agent Design Doc + interview story | ⏳ Pending |
 
@@ -195,7 +216,12 @@ The stopping condition in `agent.py` verifies the scratchpad independently of th
 - Quiz 2: Tool description quality ✅
 - Quiz 3: ReAct pattern ✅
 - Quiz 4: Memory types ✅
+- Quiz 5: Grounding vs. factuality ✅
+- Quiz 6: LLM-as-judge risk + human-in-the-loop mitigation ✅
 
 **Merged PRs:**
 - PR #1: `feature/wire-real-tools` — live Tavily + BeautifulSoup ✅
 - PR #2: `feature/richer-agent-logging` — Thought traces + human-readable logs ✅
+
+**Open PRs (pending approval):**
+- PR #4: `feature/week2-eval-factuality` — Eval 2 (factuality) + .env setup
