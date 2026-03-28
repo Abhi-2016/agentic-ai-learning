@@ -18,6 +18,9 @@ import anthropic
 import json
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()  # loads .env from project root into os.environ
 
 from tools import TOOLS, dispatch_tool, get_saved_notes, clear_scratchpad
 

@@ -17,6 +17,9 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()  # loads .env from project root into os.environ
 
 # Max characters to return from a page — full pages can be 100k+ chars and
 # will overflow the context window. 8000 chars (~2000 tokens) is enough to
