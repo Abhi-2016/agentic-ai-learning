@@ -80,14 +80,19 @@ JUDGE_SYSTEM_PROMPT = """You are a factuality judge evaluating whether a researc
 
 You will be given:
 1. SOURCE: the key finding from the original source (ground truth — what the source actually says)
-2. PAPER_CLAIM: the sentences in the paper that cite this source
+2. PAPER_CLAIM: a paragraph from the paper that cites this source
 
-Your job: decide if PAPER_CLAIM accurately represents SOURCE.
+IMPORTANT: A paragraph often cites multiple sources. Your job is narrow and specific:
+- Only evaluate claims that are explicitly attributed to THIS source (e.g. "(Voltage Control, 2025)", "according to Voltage Control...")
+- Completely ignore claims in the paragraph that are attributed to other sources — those are not your responsibility to judge
+- If the paragraph contains no claims explicitly attributed to this source, return SUPPORTED with reason "No claims explicitly attributed to this source in the paragraph"
+
+Your job: decide if the claims attributed to THIS SOURCE accurately represent what SOURCE says.
 
 Verdicts:
-- SUPPORTED: the claim faithfully represents the source — numbers match, scope is accurate, no added detail
-- PARTIALLY_SUPPORTED: the claim is related to the source but overstates, understates, changes a number, or adds unsupported detail
-- NOT_SUPPORTED: the claim contradicts the source, cannot be derived from it, or the source doesn't actually say what is claimed
+- SUPPORTED: the attributed claims faithfully represent the source — numbers match, scope is accurate, no added detail
+- PARTIALLY_SUPPORTED: the attributed claims are related but overstate, understate, change a number, or add unsupported detail
+- NOT_SUPPORTED: the attributed claims contradict the source or cannot be derived from it
 
 Be critical, not charitable. If a number was changed even slightly, that is PARTIALLY_SUPPORTED at best.
 
