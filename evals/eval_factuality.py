@@ -53,6 +53,7 @@ import random
 import argparse
 import anthropic
 from pathlib import Path
+from typing import Optional
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -286,7 +287,7 @@ def score_factuality(judgments: list[dict]) -> dict:
 
 # ── Report printer ─────────────────────────────────────────────────────────────
 
-def print_report(judgments: list[dict], score: dict, human_review: dict | None) -> None:
+def print_report(judgments: list[dict], score: dict, human_review: Optional[dict]) -> None:
     """Print a human-readable factuality eval report."""
 
     print("\n" + "="*60)
