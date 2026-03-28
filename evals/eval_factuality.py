@@ -154,39 +154,40 @@ def extract_author_keyword(author: str) -> str:
 
 def extract_context_for_source(paper: str, source_url: str, author: str = "") -> str:
     """
-    Find the sentences in the paper body that discuss a given source.
+    Find the paragraph in the paper body that discusses a given source.
 
-    Strategy (two-pass):
+    Strategy (two-pass, paragraph-level):
     1. Strip the references section — claims are in the body, not the citations list
-    2. Search body for sentences mentioning the source by author/org keyword
-       (matches "According to Voltage Control..." even without an inline URL)
-    3. Fall back to URL search in the body if author search finds nothing
+    2. Split the body into paragraphs (double newlines = semantic boundaries)
+    3. Search paragraphs for the source by author/org keyword
+    4. Fall back to URL search if author search finds nothing
+
+    Why paragraphs, not ±1 sentences:
+    Sentence-level windows bleed across paragraph boundaries. If Voltage Control
+    is cited at the end of one paragraph and Productboard numbers appear at the
+    start of the next, ±1 captures both — the judge then penalises Voltage Control
+    for Productboard's numbers. Paragraphs are the natural semantic unit: one
+    source, one paragraph.
 
     Returns an empty string if no relevant context is found.
     """
     body = extract_body(paper)
     url_clean = source_url.rstrip(".,;)")
-    sentences = re.split(r'(?<=[.!?])\s+', body)
 
-    # Primary: search by author keyword — matches prose citations in the body
+    # Split into paragraphs — double newlines delimit semantic blocks
+    paragraphs = [p.strip() for p in re.split(r'\n\n+', body) if p.strip()]
+
+    # Primary: find the first paragraph mentioning the author/org keyword
     keyword = extract_author_keyword(author)
     if keyword:
-        for i, sentence in enumerate(sentences):
-            if keyword.lower() in sentence.lower():
-                start = max(0, i - 1)
-                end = min(len(sentences), i + 2)
-                return " ".join(sentences[start:end]).strip()
+        for para in paragraphs:
+            if keyword.lower() in para.lower():
+                return para[:600]  # cap at 600 chars — enough context, not overwhelming
 
-    # Fallback: search by URL (catches inline hyperlink citations)
-    last_match = None
-    for i, sentence in enumerate(sentences):
-        if url_clean in sentence or source_url in sentence:
-            last_match = i
-
-    if last_match is not None:
-        start = max(0, last_match - 1)
-        end = min(len(sentences), last_match + 2)
-        return " ".join(sentences[start:end]).strip()
+    # Fallback: find the last paragraph containing the URL (reversed = body, not references)
+    for para in reversed(paragraphs):
+        if url_clean in para or source_url in para:
+            return para[:600]
 
     return ""
 
