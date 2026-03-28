@@ -121,9 +121,15 @@ def extract_context_for_source(paper: str, source_url: str) -> str:
     """
     Find the sentences in the paper that cite a given source URL.
 
-    Strategy: split the paper into sentences, find the sentence(s) containing
+    Strategy: split the paper into sentences, find the LAST sentence containing
     the URL, then return that sentence plus one on each side for context.
-    This gives the judge a focused 3-sentence window, not the entire paper.
+
+    Why last occurrence, not first:
+    last_paper.txt contains the full agent output — iteration logs (💭 Thought,
+    📄 Reading page, 🔍 Searching...) followed by the final paper. The URL appears
+    twice: once in the agent action log ("📄 Reading page: https://...") and once
+    in the paper's citation. The paper is always the final section, so the last
+    URL occurrence is always the actual citation we want to judge.
 
     Returns an empty string if the URL is not found in the paper.
     """
@@ -132,13 +138,16 @@ def extract_context_for_source(paper: str, source_url: str) -> str:
 
     sentences = re.split(r'(?<=[.!?])\s+', paper)
 
+    # Search from the END — the paper citation is always the last occurrence
+    last_match = None
     for i, sentence in enumerate(sentences):
         if url_clean in sentence or source_url in sentence:
-            # Grab the sentence before, the matching sentence, and the one after
-            start = max(0, i - 1)
-            end = min(len(sentences), i + 2)
-            context = " ".join(sentences[start:end])
-            return context.strip()
+            last_match = i
+
+    if last_match is not None:
+        start = max(0, last_match - 1)
+        end = min(len(sentences), last_match + 2)
+        return " ".join(sentences[start:end]).strip()
 
     return ""
 
