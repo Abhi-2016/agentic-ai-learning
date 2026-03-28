@@ -65,9 +65,9 @@ def run_agent(topic: str) -> str:
         }
     ]
 
-    print(f"\n{'='*60}")
-    print(f"Research Synthesizer — Topic: {topic}")
-    print(f"{'='*60}\n")
+    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"Research Synthesizer — Topic: {topic}", file=sys.stderr)
+    print(f"{'='*60}\n", file=sys.stderr)
 
     # ── Main agentic loop ─────────────────────────────────────────────────────
     # This loop is the difference between a chatbot and an agent.
@@ -75,7 +75,7 @@ def run_agent(topic: str) -> str:
     # An agent keeps looping until it decides it's done.
     for iteration in range(MAX_ITERATIONS):
 
-        print(f"[Iteration {iteration + 1}/{MAX_ITERATIONS}]")
+        print(f"[Iteration {iteration + 1}/{MAX_ITERATIONS}]", file=sys.stderr)
 
         # ── Step 1: Send context window to the LLM ───────────────────────────
         response = client.messages.create(
@@ -86,7 +86,7 @@ def run_agent(topic: str) -> str:
             messages=messages
         )
 
-        print(f"Stop reason: {response.stop_reason}")
+        print(f"Stop reason: {response.stop_reason}", file=sys.stderr)
 
         # ── Step 2: Process the LLM's response ───────────────────────────────
         # The LLM can respond in two ways:
@@ -110,12 +110,12 @@ def run_agent(topic: str) -> str:
                 # reasoning — this is exactly the Thought step from Quiz 3.
                 # Printing it makes the agent's decision-making fully visible.
                 if hasattr(block, "text") and block.text.strip():
-                    print(f"\n{'─'*60}")
-                    print(f"  💭 Agent Thought:\n")
+                    print(f"\n{'─'*60}", file=sys.stderr)
+                    print(f"  💭 Agent Thought:\n", file=sys.stderr)
                     # Indent each line for readability
                     for line in block.text.strip().splitlines():
-                        print(f"     {line}")
-                    print(f"{'─'*60}")
+                        print(f"     {line}", file=sys.stderr)
+                    print(f"{'─'*60}", file=sys.stderr)
 
                 if block.type == "tool_use":
 
@@ -124,20 +124,20 @@ def run_agent(topic: str) -> str:
 
                     # ── Human-readable action log ─────────────────────────────
                     if tool_name == "search_web":
-                        print(f"\n  🔍 Searching the web for: \"{tool_input.get('query')}\"")
+                        print(f"\n  🔍 Searching the web for: \"{tool_input.get('query')}\"", file=sys.stderr)
                     elif tool_name == "read_page_contents":
-                        print(f"\n  📄 Reading page: {tool_input.get('url')}")
+                        print(f"\n  📄 Reading page: {tool_input.get('url')}", file=sys.stderr)
                     elif tool_name == "save_note":
-                        print(f"\n  💾 Saving finding to scratchpad:")
-                        print(f"     Source: {tool_input.get('source_url')}")
-                        print(f"     Author: {tool_input.get('author_or_org')} ({tool_input.get('year')})")
-                        print(f"     Finding: {tool_input.get('finding', '')[:120]}...")
+                        print(f"\n  💾 Saving finding to scratchpad:", file=sys.stderr)
+                        print(f"     Source: {tool_input.get('source_url')}", file=sys.stderr)
+                        print(f"     Author: {tool_input.get('author_or_org')} ({tool_input.get('year')})", file=sys.stderr)
+                        print(f"     Finding: {tool_input.get('finding', '')[:120]}...", file=sys.stderr)
 
                     # ── Execute the tool (calls tools.py dispatch_tool) ───────
                     result = dispatch_tool(tool_name, tool_input)
 
                     # Show a brief result preview — enough to see what came back
-                    print(f"\n  ✅ Result preview: {str(result)[:200]}...")
+                    print(f"\n  ✅ Result preview: {str(result)[:200]}...", file=sys.stderr)
 
                     # ── Append Observation to context window ──────────────────
                     # This is the "O" in ReAct: Reason → Act → Observe → (loop)
@@ -155,7 +155,7 @@ def run_agent(topic: str) -> str:
             # After every save_note call, check if we've hit 3 confirmed sources.
             # This is the stopping condition from your system prompt.
             saved_notes = get_saved_notes()
-            print(f"\n  Scratchpad: {len(saved_notes)}/{REQUIRED_SOURCES} sources saved")
+            print(f"\n  Scratchpad: {len(saved_notes)}/{REQUIRED_SOURCES} sources saved", file=sys.stderr)
 
             # Loop continues — agent will reason about what to do next
 
@@ -168,11 +168,11 @@ def run_agent(topic: str) -> str:
                     # Check if this looks like a Thought (not the final paper)
                     text = block.text.strip()
                     if text.lower().startswith("thought") or text.lower().startswith("rationale"):
-                        print(f"\n{'─'*60}")
-                        print(f"  💭 Agent Thought:\n")
+                        print(f"\n{'─'*60}", file=sys.stderr)
+                        print(f"  💭 Agent Thought:\n", file=sys.stderr)
                         for line in text.splitlines():
-                            print(f"     {line}")
-                        print(f"{'─'*60}")
+                            print(f"     {line}", file=sys.stderr)
+                        print(f"{'─'*60}", file=sys.stderr)
 
             # Extract the text content from the response
             final_text = ""
@@ -187,16 +187,16 @@ def run_agent(topic: str) -> str:
             saved_notes = get_saved_notes()
 
             if len(saved_notes) >= REQUIRED_SOURCES:
-                print(f"\n{'='*60}")
-                print("Stopping condition met. Final paper below.")
-                print(f"{'='*60}\n")
+                print(f"\n{'='*60}", file=sys.stderr)
+                print("Stopping condition met. Final paper below.", file=sys.stderr)
+                print(f"{'='*60}\n", file=sys.stderr)
                 return final_text
             else:
                 # Agent said it was done but didn't meet the stopping condition.
                 # This is a common failure mode — the agent gets overconfident.
                 # We send it back to keep researching.
-                print(f"\n  [Warning] Agent tried to stop with only {len(saved_notes)} sources.")
-                print(f"  Sending back to find more sources...\n")
+                print(f"\n  [Warning] Agent tried to stop with only {len(saved_notes)} sources.", file=sys.stderr)
+                print(f"  Sending back to find more sources...\n", file=sys.stderr)
 
                 messages.append({
                     "role": "user",
@@ -209,7 +209,7 @@ def run_agent(topic: str) -> str:
 
         else:
             # Unexpected stop reason — surface it for debugging
-            print(f"[Unexpected stop reason: {response.stop_reason}]")
+            print(f"[Unexpected stop reason: {response.stop_reason}]", file=sys.stderr)
             break
 
     # If we exit the loop without returning, we hit the iteration ceiling
@@ -224,8 +224,8 @@ def run_agent(topic: str) -> str:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python agent.py \"<research topic>\"")
-        print("Example: python agent.py \"Impact of AI on healthcare\"")
+        print("Usage: python agent.py \"<research topic>\"", file=sys.stderr)
+        print("Example: python agent.py \"Impact of AI on healthcare\"", file=sys.stderr)
         sys.exit(1)
 
     topic = " ".join(sys.argv[1:])
