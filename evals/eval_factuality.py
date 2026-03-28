@@ -117,28 +117,67 @@ def load_paper(path: Path) -> str:
     return path.read_text()
 
 
-def extract_context_for_source(paper: str, source_url: str) -> str:
+def extract_body(paper: str) -> str:
+    """Return only the body of the paper, stripping the references section.
+
+    Claims are made in the body. The references section is just citation
+    metadata — URLs there are not claims and should not be judged.
     """
-    Find the sentences in the paper that cite a given source URL.
+    ref_match = re.search(r'\n#{1,3}\s*(References|Bibliography|Sources)', paper, re.IGNORECASE)
+    if ref_match:
+        return paper[:ref_match.start()]
+    return paper
 
-    Strategy: split the paper into sentences, find the LAST sentence containing
-    the URL, then return that sentence plus one on each side for context.
 
-    Why last occurrence, not first:
-    last_paper.txt contains the full agent output — iteration logs (💭 Thought,
-    📄 Reading page, 🔍 Searching...) followed by the final paper. The URL appears
-    twice: once in the agent action log ("📄 Reading page: https://...") and once
-    in the paper's citation. The paper is always the final section, so the last
-    URL occurrence is always the actual citation we want to judge.
+def extract_author_keyword(author: str) -> str:
+    """Extract the most searchable keyword from a scratchpad author/org string.
 
-    Returns an empty string if the URL is not found in the paper.
+    The paper cites sources by org name in prose ("According to Voltage Control..."),
+    not by URL. We need a keyword to find those prose sentences.
+
+    Examples:
+      "Voltage Control (2025)"                               → "Voltage Control"
+      "Tucker J. Marion — MIT Sloan Management Review (2024)" → "MIT Sloan"
+      "Productboard (in partnership with UserEvidence) (2025)" → "Productboard"
     """
-    # Strip trailing punctuation that sometimes appears after URLs in text
+    # Remove year patterns like (2024), (2025)
+    clean = re.sub(r'\(\d{4}\)', '', author).strip()
+    # Remove parenthetical asides like "(in partnership with UserEvidence)"
+    clean = re.sub(r'\(.*?\)', '', clean).strip()
+    # If there's a dash separator (lastname — OrgName), take the org part
+    if ' — ' in clean:
+        clean = clean.split(' — ')[-1].strip()
+    # Return up to 3 words — enough to be distinctive without over-constraining
+    words = clean.split()
+    return ' '.join(words[:3]) if words else ''
+
+
+def extract_context_for_source(paper: str, source_url: str, author: str = "") -> str:
+    """
+    Find the sentences in the paper body that discuss a given source.
+
+    Strategy (two-pass):
+    1. Strip the references section — claims are in the body, not the citations list
+    2. Search body for sentences mentioning the source by author/org keyword
+       (matches "According to Voltage Control..." even without an inline URL)
+    3. Fall back to URL search in the body if author search finds nothing
+
+    Returns an empty string if no relevant context is found.
+    """
+    body = extract_body(paper)
     url_clean = source_url.rstrip(".,;)")
+    sentences = re.split(r'(?<=[.!?])\s+', body)
 
-    sentences = re.split(r'(?<=[.!?])\s+', paper)
+    # Primary: search by author keyword — matches prose citations in the body
+    keyword = extract_author_keyword(author)
+    if keyword:
+        for i, sentence in enumerate(sentences):
+            if keyword.lower() in sentence.lower():
+                start = max(0, i - 1)
+                end = min(len(sentences), i + 2)
+                return " ".join(sentences[start:end]).strip()
 
-    # Search from the END — the paper citation is always the last occurrence
+    # Fallback: search by URL (catches inline hyperlink citations)
     last_match = None
     for i, sentence in enumerate(sentences):
         if url_clean in sentence or source_url in sentence:
@@ -390,7 +429,7 @@ def run_eval(paper_path: Path, scratchpad_path: Path, human_review: bool = False
 
         print(f"  [{i}/{len(scratchpad)}] Judging: {author} ({year})...", end=" ", flush=True)
 
-        paper_context = extract_context_for_source(paper, source_url)
+        paper_context = extract_context_for_source(paper, source_url, author)
 
         if not paper_context:
             # URL not found in paper — Eval 1 (grounding) would catch this,
