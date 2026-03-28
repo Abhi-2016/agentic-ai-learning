@@ -176,16 +176,17 @@ Four evaluation dimensions, each taught before built:
 
 ```
 research-synthesizer/
-├── agent.py            # The ReAct loop — the heart of the agent
-├── tools.py            # Tool schemas (LLM-facing) + live execution functions
-├── system_prompt.txt   # The agent's operating instructions (written by hand, not generated)
-├── scratchpad.json     # Persistent memory — survives restarts
-├── requirements.txt    # anthropic, requests, beautifulsoup4
-└── evals/              # (Week 2) Evaluation suite — in progress
-    ├── eval_grounding.py
-    ├── eval_factuality.py
-    ├── eval_completeness.py
-    └── eval_efficiency.py
+├── agent.py              # The ReAct loop — the heart of the agent
+├── tools.py              # Tool schemas (LLM-facing) + live execution functions
+├── system_prompt.txt     # The agent's operating instructions (written by hand, not generated)
+├── scratchpad.json       # Persistent memory — survives restarts
+├── requirements.txt      # anthropic, requests, beautifulsoup4, python-dotenv
+├── .env.example          # API key template — copy to .env and fill in values
+└── evals/
+    ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
+    ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + --human-review calibration
+    ├── eval_completeness.py  # ⏳ Eval 3: rubric-based (coming soon)
+    └── eval_efficiency.py    # ⏳ Eval 4: quality per tool call (coming soon)
 ```
 
 ---
@@ -200,15 +201,30 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Set API keys
-export ANTHROPIC_API_KEY=your_key_here
-export TAVILY_API_KEY=your_key_here  # Free tier at app.tavily.com
+# 3. Set API keys — copy the template and fill in your keys
+cp .env.example .env
+# Edit .env and add your keys (never committed — gitignored automatically)
+# ANTHROPIC_API_KEY=...
+# TAVILY_API_KEY=...     # Free tier at app.tavily.com
 
 # 4. Run the agent
-python agent.py "Impact of AI on healthcare"
+python agent.py "Impact of AI on healthcare" > last_paper.txt
 ```
 
 Watch the terminal — every iteration shows the agent's Thought, the tool it chose, and the result. The scratchpad count climbs to 3, then the paper is written.
+
+### Run the Eval Suite
+
+```bash
+# Eval 1: Grounding — does every claim have a citation?
+python evals/eval_grounding.py
+
+# Eval 2: Factuality — do claims accurately represent their sources?
+python evals/eval_factuality.py
+
+# Eval 2 with human calibration spot-check
+python evals/eval_factuality.py --human-review
+```
 
 ---
 
@@ -228,8 +244,8 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Agent verified working end-to-end ✅
 
 ### Week 2 — Evals 🔄
-- [ ] Grounding eval (rule-based citation checker)
-- [ ] Factuality eval (LLM-as-judge)
+- [x] Grounding eval (rule-based citation checker) ✅
+- [x] Factuality eval (LLM-as-judge + human calibration) ✅
 - [ ] Completeness eval (rubric-based)
 - [ ] Efficiency eval (quality per tool call)
 
@@ -262,6 +278,7 @@ main (stable — always working)
 |---|---|---|
 | #1 | `feature/wire-real-tools` | Live Tavily + BeautifulSoup implementations |
 | #2 | `feature/richer-agent-logging` | Agent Thought traces + human-readable action logs |
+| #4 | `feature/week2-eval-factuality` | Eval 2 (factuality) + .env setup via python-dotenv |
 
 ---
 
