@@ -180,6 +180,15 @@ def run_agent(topic: str) -> str:
                 if hasattr(block, "text"):
                     final_text += block.text
 
+            # Strip any leading reasoning/thought text — the agent sometimes
+            # writes a "Thought: ..." block in the same response as the paper.
+            # The paper always starts with a markdown heading (# Title).
+            # Everything before the first heading is reasoning, not output.
+            import re as _re
+            heading_match = _re.search(r'^#{1,3} ', final_text, _re.MULTILINE)
+            if heading_match:
+                final_text = final_text[heading_match.start():]
+
             # ── Hard stopping condition check ─────────────────────────────────
             # Even if the agent says it's done, we verify the scratchpad.
             # This is the difference between trusting the agent's self-report
