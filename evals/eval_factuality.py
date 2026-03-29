@@ -128,7 +128,12 @@ def extract_body(paper: str) -> str:
     Claims are made in the body. The references section is just citation
     metadata — URLs there are not claims and should not be judged.
     """
-    ref_match = re.search(r'\n#{1,3}\s*(References|Bibliography|Sources)', paper, re.IGNORECASE)
+    # Match both Markdown headings (## References) and bold text (**References**)
+    # Also covers Works Cited, Bibliography, Sources, and unlabelled numbered lists
+    ref_match = re.search(
+        r'\n(\*\*|#{1,3}\s*)(References|Bibliography|Sources|Works Cited)(\*\*)?',
+        paper, re.IGNORECASE
+    )
     if ref_match:
         return paper[:ref_match.start()]
     return paper
@@ -152,6 +157,16 @@ def extract_author_keyword(author: str) -> str:
     # If there's a dash separator (lastname — OrgName), take the org part
     if ' — ' in clean:
         clean = clean.split(' — ')[-1].strip()
+    # Handle "Org / Person" or "Person / Org" slash separator.
+    # Strategy: take the first segment — for "Reforge / Brian Balfour" that's "Reforge" (org, 1 word → return directly).
+    # For "Siddhartha Agarwal / Freshworks" that's "Siddhartha Agarwal" (person, 2 words → return surname).
+    if ' / ' in clean:
+        first_segment = clean.split(' / ')[0].strip()
+        words = first_segment.split()
+        if len(words) == 1:
+            return words[0]          # single-word org like "Reforge"
+        else:
+            return words[-1]         # multi-word person name → surname e.g. "Agarwal"
     # If "Firstname Lastname, Org Name" pattern: extract surname only.
     # Papers cite individuals by surname ("Cagan, 2024"), not full name or org.
     if ',' in clean:
@@ -201,6 +216,10 @@ def extract_context_for_source(paper: str, source_url: str, author: str = "") ->
     # Fallback: find the last paragraph containing the URL (reversed = body, not references)
     for para in reversed(paragraphs):
         if url_clean in para or source_url in para:
+            # Skip numbered bibliography entries like "3. Author, A. (2023). Title. URL"
+            # These are citation metadata, not body claims — the judge has nothing to evaluate
+            if re.match(r'^\d+\.', para.strip()):
+                continue
             return para[:800]
 
     return ""
