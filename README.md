@@ -168,7 +168,9 @@ Four evaluation dimensions, each taught before built:
 | **Completeness** | Did it cover all required sections? | Rubric-based scoring |
 | **Efficiency** | Quality per tool call | Ratio metric |
 
-**The key PM insight:** Grounding and factuality are not the same thing. An agent can cite a source that is itself wrong. Attribution ≠ truth. This distinction shapes every production deployment decision.
+**The key PM insights:**
+- **Attribution ≠ truth**: Grounding checks that a URL is present. Factuality checks what's actually said near that URL. An agent can be fully grounded and still misrepresent its sources.
+- **Synthesis vs. attribution**: Attribution is the model repeating source language — low risk, eval-verifiable. Synthesis is the model connecting ideas to form new claims — higher risk, unverifiable against any single source. Fluent, eloquent writing requires synthesis. Every "taken together, these findings suggest..." is a claim no scratchpad entry contains. As a PM, you must deliberately decide how much synthesis you authorise — and use the factuality eval to measure where you actually land.
 
 ---
 
@@ -279,6 +281,7 @@ main (stable — always working)
 | #1 | `feature/wire-real-tools` | Live Tavily + BeautifulSoup implementations |
 | #2 | `feature/richer-agent-logging` | Agent Thought traces + human-readable action logs |
 | #4 | `feature/week2-eval-factuality` | Eval 2 (factuality) + .env setup via python-dotenv |
+| #5 | `feature/week2-verbatim-system-prompt-eval-fix` | Verbatim system prompt rule + eval multi-source grouping fix |
 
 ---
 
