@@ -196,9 +196,10 @@ def judge_criterion(
     """
     client = anthropic.Anthropic()
 
-    # Cap paper at 1500 chars — enough for the judge to evaluate structure
-    # and topic coverage without exhausting the context window on a single call
-    paper_excerpt = paper[:1500] + "\n[...truncated...]" if len(paper) > 1500 else paper
+    # The system prompt caps papers at 1000 words (~6000 chars). Send the full
+    # paper — truncating at 1500 chars cuts off the conclusion, causing false
+    # PARTIAL verdicts on the Structure criterion.
+    paper_excerpt = paper
 
     user_message = f"""TOPIC: {topic}
 
