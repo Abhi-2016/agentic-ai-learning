@@ -82,6 +82,7 @@ python agent.py "your topic" > last_paper.txt  # produce the paper
 python evals/eval_grounding.py                  # Eval 1: citation coverage
 python evals/eval_factuality.py                 # Eval 2: LLM-as-judge
 python evals/eval_factuality.py --human-review  # Eval 2 with calibration spot-check
+python evals/eval_completeness.py               # Eval 3: rubric-based section + coverage check
 ```
 
 ### What's Built (Week 2 — Evals 🔄)
@@ -89,8 +90,8 @@ python evals/eval_factuality.py --human-review  # Eval 2 with calibration spot-c
 |---|---|---|
 | Grounding | ✅ Built | Rule-based citation checker |
 | Factuality | ✅ Built | LLM-as-judge (claude-haiku) + `--human-review` calibration |
-| Completeness | ⏳ Next | Rubric-based section coverage |
-| Efficiency | ⏳ Pending | Quality per tool call ratio |
+| Completeness | ✅ Built | Rubric-based section coverage (3 Haiku calls, one per criterion) |
+| Efficiency | ⏳ Next | Quality per tool call ratio |
 
 ---
 
@@ -158,7 +159,7 @@ research-synthesizer/
 └── evals/
     ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
     ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + human-review calibration
-    ├── eval_completeness.py  # ⏳ Eval 3: rubric-based section coverage
+    ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check (3 Haiku calls)
     └── eval_efficiency.py    # ⏳ Eval 4: quality per tool call
 ```
 
@@ -207,6 +208,8 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - **Plan file is source of truth**: `~/.claude/plans/graceful-seeking-lecun.md`
 - **Evals go in `evals/`**: One file per eval, named `eval_<name>.py`
 - **No generated system prompts**: `system_prompt.txt` is always written/edited by Abhishek
+- **Run commands belong to Abhishek**: After building a feature, provide the commands to run — do NOT run them. Wait for Abhishek to share the output, then discuss results together.
+- **Quizzes gate all code**: Never build a new feature or eval without first quizzing the concept — no exceptions
 
 ---
 
@@ -227,9 +230,14 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - Quiz 4: Memory types ✅
 - Quiz 5: Grounding vs. factuality ✅
 - Quiz 6: LLM-as-judge risk + human-in-the-loop mitigation ✅
+- Quiz 7: Rubric design (3-point completeness rubric) ✅
 
 **Merged PRs:**
 - PR #1: `feature/wire-real-tools` — live Tavily + BeautifulSoup ✅
 - PR #2: `feature/richer-agent-logging` — Thought traces + human-readable logs ✅
 - PR #4: `feature/week2-eval-factuality` — Eval 2 (factuality) + .env setup ✅
 - PR #5: `feature/week2-verbatim-system-prompt-eval-fix` — verbatim system prompt + eval multi-source fix ✅
+- PR #6: `feature/week2-docs-synthesis-attribution` — CLAUDE.md + README.md sync ✅
+- PR #7: `feature/week2-eval-completeness` — Eval 3 (completeness) built ✅
+- PR #8: `feature/week2-eval-factuality-extraction-fix` — bold references + slash separator + bibliography skip ✅
+- PR #9: `feature/week2-completeness-full-paper` — remove 1500-char truncation in Eval 3 ✅
