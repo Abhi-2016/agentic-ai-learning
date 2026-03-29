@@ -50,7 +50,7 @@ Branch naming: `feature/week2-evals`, `feature/week3-multi-agent`, `feature/week
 
 | File | Status | Notes |
 |---|---|---|
-| `system_prompt.txt` | ✅ Live | Written by Abhishek — goal, stopping condition, ReAct reasoning, tools, 5 uncertainty modes |
+| `system_prompt.txt` | ✅ Live | Written by Abhishek — goal, stopping condition, ReAct reasoning, tools, 5 uncertainty modes, LANGUAGE DISCIPLINE verbatim constraint |
 | `tools.py` | ✅ Live | All 3 tools fully wired — no stubs remaining |
 | `agent.py` | ✅ Live | ReAct loop + Thought trace logging + trust-but-verify stopping |
 | `scratchpad.json` | ✅ Live | Persistent memory — contains results from last run |
@@ -187,6 +187,15 @@ The stopping condition in `agent.py` verifies the scratchpad independently of th
 ### Why `.env` via python-dotenv instead of `export`
 Exporting keys per session is error-prone and easy to forget. `python-dotenv` reads `.env` at import time, injecting values into `os.environ` before any tool or API call. The `.env` file is gitignored by `*.env` pattern. `.env.example` is committed so any future collaborator knows exactly what keys are needed.
 
+### Why the system prompt has a LANGUAGE DISCIPLINE section (verbatim constraint)
+The agent produced fluent, readable prose that paraphrased and elaborated beyond what sources actually said. "Only state facts from your notes" was insufficient — the agent still synthesised plausible language. Adding "use the exact language from your notes" improved the factuality eval from 67% WARN to 100% PASS.
+
+The tradeoff is **synthesis vs. attribution**:
+- **Attribution** — model repeats source language. Low risk. Eval-verifiable.
+- **Synthesis** — model connects ideas to form new claims. Higher risk. Cannot be verified against any scratchpad entry. Every fluent transition ("taken together, these findings suggest...") is synthesis.
+
+For this research accuracy tool, attribution > synthesis. The eval is the instrument that measures where you land. This is a deliberate PM decision, not an engineering one.
+
 ---
 
 ## Conventions for This Project
@@ -222,6 +231,5 @@ Exporting keys per session is error-prone and easy to forget. `python-dotenv` re
 **Merged PRs:**
 - PR #1: `feature/wire-real-tools` — live Tavily + BeautifulSoup ✅
 - PR #2: `feature/richer-agent-logging` — Thought traces + human-readable logs ✅
-
-**Open PRs (pending approval):**
-- PR #4: `feature/week2-eval-factuality` — Eval 2 (factuality) + .env setup
+- PR #4: `feature/week2-eval-factuality` — Eval 2 (factuality) + .env setup ✅
+- PR #5: `feature/week2-verbatim-system-prompt-eval-fix` — verbatim system prompt + eval multi-source fix ✅
