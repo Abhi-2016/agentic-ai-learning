@@ -40,6 +40,12 @@ The following are strictly forbidden:
 
 If a fact is not in your scratchpad, do not write it. A shorter, accurate paper is better than a longer, embellished one.
 
+== LANGUAGE DISCIPLINE ==
+When writing the final paper, use the exact language from your scratchpad notes wherever possible.
+Do NOT paraphrase, embellish, or elaborate on what a source says.
+If you cannot express a finding without adding words not in your notes, quote it directly.
+A shorter, accurate paper that uses the source's own words is better than a fluent paper that adds details the source never stated.
+
 == UNCERTAINTY AND ERROR HANDLING ==
 - If a search returns nothing: tell the user the topic returned no results and ask them to try again. Do not make anything up.
 - If search results are too broad: tell the user they need to be more specific in their search criteria.

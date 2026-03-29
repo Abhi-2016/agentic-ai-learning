@@ -152,6 +152,12 @@ def extract_author_keyword(author: str) -> str:
     # If there's a dash separator (lastname — OrgName), take the org part
     if ' — ' in clean:
         clean = clean.split(' — ')[-1].strip()
+    # If "Firstname Lastname, Org Name" pattern: extract surname only.
+    # Papers cite individuals by surname ("Cagan, 2024"), not full name or org.
+    if ',' in clean:
+        first_segment = clean.split(',')[0].strip()
+        words = first_segment.split()
+        return words[-1] if words else ''  # e.g., "Marty Cagan, SVPG" → "Cagan"
     # Return up to 3 words — enough to be distinctive without over-constraining
     words = clean.split()
     return ' '.join(words[:3]) if words else ''
@@ -182,17 +188,20 @@ def extract_context_for_source(paper: str, source_url: str, author: str = "") ->
     # Split into paragraphs — double newlines delimit semantic blocks
     paragraphs = [p.strip() for p in re.split(r'\n\n+', body) if p.strip()]
 
-    # Primary: find the first paragraph mentioning the author/org keyword
+    # Primary: collect ALL paragraphs mentioning the author/org keyword.
+    # A source may be cited in multiple paragraphs — returning only the first
+    # means the judge misses later citations. Joining all gives full picture.
     keyword = extract_author_keyword(author)
     if keyword:
-        for para in paragraphs:
-            if keyword.lower() in para.lower():
-                return para[:600]  # cap at 600 chars — enough context, not overwhelming
+        matching = [p for p in paragraphs if keyword.lower() in p.lower()]
+        if matching:
+            combined = '\n\n'.join(matching)
+            return combined[:800]  # cap at 800 chars — full context, not overwhelming
 
     # Fallback: find the last paragraph containing the URL (reversed = body, not references)
     for para in reversed(paragraphs):
         if url_clean in para or source_url in para:
-            return para[:600]
+            return para[:800]
 
     return ""
 
@@ -423,44 +432,65 @@ def run_eval(paper_path: Path, scratchpad_path: Path, human_review: bool = False
     paper = load_paper(paper_path)
     scratchpad = load_scratchpad(scratchpad_path)
 
+    # Group scratchpad entries by source URL.
+    # A single source often contributes multiple findings — evaluating them
+    # separately would give the judge the same paragraph 3 times and produce
+    # redundant (often wrong) verdicts. One source → one verdict is the right
+    # granularity: "does the paper faithfully represent Voltage Control?"
+    sources: dict = {}
+    for note in scratchpad:
+        url = note.get("source_url", "")
+        if url not in sources:
+            sources[url] = {
+                "source_url": url,
+                "author": note.get("author_or_org", "Unknown"),
+                "year": note.get("year", "Unknown"),
+                "findings": []
+            }
+        sources[url]["findings"].append(note.get("finding", ""))
+
+    unique_sources = list(sources.values())
     print(f"\nRunning Eval 2 (Factuality) — judge model: {JUDGE_MODEL}")
-    print(f"Checking {len(scratchpad)} sources...\n")
+    print(f"Checking {len(unique_sources)} unique sources ({len(scratchpad)} scratchpad entries)...\n")
 
     judgments = []
-    for i, note in enumerate(scratchpad, 1):
-        source_url = note.get("source_url", "")
-        source_finding = note.get("finding", "")
-        author = note.get("author_or_org", "Unknown")
-        year = note.get("year", "Unknown")
+    for i, src in enumerate(unique_sources, 1):
+        source_url = src["source_url"]
+        author = src["author"]
+        year = src["year"]
+        # Combine all findings for this source into one SOURCE block
+        combined_finding = "\n\n".join(
+            f"Finding {j+1}: {f}" for j, f in enumerate(src["findings"])
+        )
 
-        print(f"  [{i}/{len(scratchpad)}] Judging: {author} ({year})...", end=" ", flush=True)
+        print(f"  [{i}/{len(unique_sources)}] Judging: {author} ({year})...", end=" ", flush=True)
 
         paper_context = extract_context_for_source(paper, source_url, author)
 
         if not paper_context:
             # URL not found in paper — Eval 1 (grounding) would catch this,
             # but we still record it here as NOT_SUPPORTED for completeness
-            print("URL not in paper — skipping judge call")
+            print("not found in paper — skipping judge call")
             judgments.append({
                 "source_url": source_url,
                 "author": author,
                 "year": year,
-                "source_finding": source_finding,
+                "source_finding": combined_finding,
                 "paper_context": "",
                 "verdict": "NOT_SUPPORTED",
-                "reason": "URL not found in paper — claim context could not be extracted.",
+                "reason": "Source not found in paper — claim context could not be extracted.",
                 "raw_response": ""
             })
             continue
 
-        result = judge_claim(source_finding, paper_context)
+        result = judge_claim(combined_finding, paper_context)
         print(result["verdict"])
 
         judgments.append({
             "source_url": source_url,
             "author": author,
             "year": year,
-            "source_finding": source_finding,
+            "source_finding": combined_finding,
             "paper_context": paper_context,
             **result
         })
