@@ -161,12 +161,12 @@ Every action is preceded by a printed Thought showing rationale, chosen tool, an
 ### 5. Evals (Week 2 — in progress)
 Four evaluation dimensions, each taught before built:
 
-| Eval | What It Measures | Method |
-|---|---|---|
-| **Grounding** | Does every claim have a traceable source? | Rule-based (citation check) |
-| **Factuality** | Are the claims actually true? | LLM-as-judge against ground truth |
-| **Completeness** | Did it cover all required sections? | Rubric-based scoring |
-| **Efficiency** | Quality per tool call | Ratio metric |
+| Eval | What It Measures | Method | Status |
+|---|---|---|---|
+| **Grounding** | Does every claim have a traceable source? | Rule-based (citation check) | ✅ |
+| **Factuality** | Are the claims accurately represented from their sources? | LLM-as-judge against scratchpad ground truth | ✅ |
+| **Completeness** | Does the paper cover the topic, have good structure, and use 3 strong sources? | Rubric-based scoring (3 independent judge calls) | ✅ |
+| **Efficiency** | Quality per tool call | Ratio metric | ⏳ |
 
 **The key PM insights:**
 - **Attribution ≠ truth**: Grounding checks that a URL is present. Factuality checks what's actually said near that URL. An agent can be fully grounded and still misrepresent its sources.
@@ -187,7 +187,7 @@ research-synthesizer/
 └── evals/
     ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
     ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + --human-review calibration
-    ├── eval_completeness.py  # ⏳ Eval 3: rubric-based (coming soon)
+    ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check
     └── eval_efficiency.py    # ⏳ Eval 4: quality per tool call (coming soon)
 ```
 
@@ -226,6 +226,9 @@ python evals/eval_factuality.py
 
 # Eval 2 with human calibration spot-check
 python evals/eval_factuality.py --human-review
+
+# Eval 3: Completeness — does the paper cover the topic, have structure, and use 3 strong sources?
+python evals/eval_completeness.py
 ```
 
 ---
@@ -248,7 +251,7 @@ This project is being built incrementally, with each concept quizzed and underst
 ### Week 2 — Evals 🔄
 - [x] Grounding eval (rule-based citation checker) ✅
 - [x] Factuality eval (LLM-as-judge + human calibration) ✅
-- [ ] Completeness eval (rubric-based)
+- [x] Completeness eval (rubric-based, 3-criterion, 3 independent Haiku judge calls) ✅
 - [ ] Efficiency eval (quality per tool call)
 
 ### Week 3 — Agent 2: Multi-Agent PM Interview Coach
@@ -282,6 +285,10 @@ main (stable — always working)
 | #2 | `feature/richer-agent-logging` | Agent Thought traces + human-readable action logs |
 | #4 | `feature/week2-eval-factuality` | Eval 2 (factuality) + .env setup via python-dotenv |
 | #5 | `feature/week2-verbatim-system-prompt-eval-fix` | Verbatim system prompt rule + eval multi-source grouping fix |
+| #6 | `feature/week2-docs-synthesis-attribution` | CLAUDE.md + README.md sync; synthesis vs. attribution PM insight |
+| #7 | `feature/week2-eval-completeness` | Eval 3 (completeness) built — 3-criterion rubric, topic auto-extraction |
+| #8 | `feature/week2-eval-factuality-extraction-fix` | Eval 2 extraction fixes: bold references, slash separator, bibliography skip |
+| #9 | `feature/week2-completeness-full-paper` | Eval 3 fix: send full paper to judge (remove 1500-char truncation) |
 
 ---
 
