@@ -13,18 +13,25 @@ WHY IT EXISTS:
   in the system prompt or tools is not well-defined.
 
 THE FORMULA:
-  efficiency_score = min(composite_quality / (num_tool_calls / BASELINE), 1.0)
+  efficiency_score = min(composite_quality / (external_calls / BASELINE), 1.0)
 
   Where:
     composite_quality = average of Eval 1, 2, 3 final scores
-    num_tool_calls    = total tool dispatches logged in run_metrics.json
-    BASELINE          = 10 (ideal: 3 search + 3 read + 3 save + 1 margin)
+    external_calls    = search_web + read_page_contents calls only
+    BASELINE          = 6 (ideal: 3 searches + 3 reads to find 3 strong sources)
+
+  Why external calls only — not save_note:
+    save_note is only called when the agent determines a source is strong.
+    It is the desired outcome, not overhead. Penalising it would punish
+    the agent for doing its job. search_web and read_page_contents are the
+    exploration calls — these are where redundancy (duplicate queries,
+    pages that yield nothing) actually shows up.
 
   Interpretation:
-    penalty_factor = num_tool_calls / BASELINE
-    - penalty = 1.0  → used exactly baseline calls → no penalty
-    - penalty = 2.0  → used 2× baseline → efficiency halved
-    - penalty = 0.5  → used half baseline → score capped at 1.0
+    penalty_factor = external_calls / BASELINE
+    - penalty = 1.0  → used exactly 6 external calls → no penalty
+    - penalty = 2.0  → used 12 external calls → efficiency halved
+    - penalty = 0.5  → used 3 external calls → score capped at 1.0
 
 WHY THIS IS THE PM DASHBOARD METRIC:
   A single number that captures both quality and process health.
@@ -61,10 +68,11 @@ DEFAULT_SCRATCHPAD_PATH = PROJECT_ROOT / "scratchpad.json"
 DEFAULT_METRICS_PATH = PROJECT_ROOT / "run_metrics.json"
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-# BASELINE: the ideal tool call count for a minimal correct run.
-# 3 × search_web  +  3 × read_page_contents  +  3 × save_note  +  1 margin = 10
-# A run using exactly 10 calls for perfect quality scores 1.0 efficiency.
-BASELINE_TOOL_CALLS = 10
+# BASELINE: the ideal external call count for a minimal correct run.
+# 3 × search_web  +  3 × read_page_contents = 6
+# save_note is excluded — it is the desired outcome, not overhead.
+# A run using exactly 6 external calls for perfect quality scores 1.0 efficiency.
+BASELINE_EXTERNAL_CALLS = 6
 
 # Verdict thresholds — same PASS / WARN / FAIL scale as Evals 1–3
 PASS_THRESHOLD = 0.70   # good quality, call count reasonable
@@ -125,7 +133,10 @@ def run_eval(
     """
     # ── Step 1: Load metrics ──────────────────────────────────────────────────
     metrics = load_metrics(metrics_path)
-    num_tool_calls = metrics["num_tool_calls"]
+    search_calls = metrics["search_calls"]
+    read_calls = metrics["read_calls"]
+    save_calls = metrics["save_calls"]
+    external_calls = search_calls + read_calls   # only these count against efficiency
     topic = metrics.get("topic", "Unknown")
     num_iterations = metrics.get("num_iterations", "Unknown")
 
@@ -145,9 +156,10 @@ def run_eval(
     composite_quality = round((g_score + f_score + c_score) / 3, 3)
 
     # ── Step 4: Efficiency score ──────────────────────────────────────────────
-    # penalty_factor = how many "ideal runs" worth of calls were used.
+    # penalty_factor = how many "ideal runs" worth of external calls were used.
     # 1.0 = exactly baseline (no penalty). 2.0 = double baseline (halves score).
-    penalty_factor = num_tool_calls / BASELINE_TOOL_CALLS
+    # save_calls are excluded — they are the desired outcome, not overhead.
+    penalty_factor = external_calls / BASELINE_EXTERNAL_CALLS
     raw_efficiency = composite_quality / penalty_factor
     efficiency_score = round(min(raw_efficiency, 1.0), 3)  # cap at 1.0
 
@@ -155,9 +167,12 @@ def run_eval(
 
     return {
         "topic": topic,
-        "num_tool_calls": num_tool_calls,
         "num_iterations": num_iterations,
-        "baseline_tool_calls": BASELINE_TOOL_CALLS,
+        "search_calls": search_calls,
+        "read_calls": read_calls,
+        "save_calls": save_calls,
+        "external_calls": external_calls,
+        "baseline_external_calls": BASELINE_EXTERNAL_CALLS,
         "penalty_factor": round(penalty_factor, 2),
         "grounding_score": g_score,
         "factuality_score": f_score,
@@ -202,26 +217,29 @@ def print_report(results: dict) -> None:
 
     # ── Tool call breakdown ───────────────────────────────────────────────────
     print("\n── Tool call efficiency ──────────────────────────────────────")
-    print(f"  Tool calls used:   {results['num_tool_calls']}")
-    print(f"  Baseline:          {results['baseline_tool_calls']}")
-    print(f"  Penalty factor:    {results['penalty_factor']:.1f}×")
+    print(f"  🔍 search_web calls:        {results['search_calls']}  (counts against efficiency)")
+    print(f"  📄 read_page calls:         {results['read_calls']}  (counts against efficiency)")
+    print(f"  💾 save_note calls:         {results['save_calls']}  (excluded — desired outcome)")
+    print(f"\n  External calls (search+read): {results['external_calls']}")
+    print(f"  Baseline:                     {results['baseline_external_calls']}")
+    print(f"  Penalty factor:               {results['penalty_factor']:.1f}×")
 
     # Plain-English interpretation of the penalty
     pf = results["penalty_factor"]
     if pf <= 1.0:
-        print("  (Used ≤ baseline calls — maximum efficiency)")
+        print("  (Used ≤ baseline — maximum efficiency)")
     elif pf <= 1.5:
         print("  (Slightly above baseline — acceptable)")
     elif pf <= 2.5:
-        print("  (Above baseline — some redundant calls)")
+        print("  (Above baseline — some redundant searches or reads)")
     else:
         print("  (Well above baseline — agent is wandering)")
 
     # ── Final score ───────────────────────────────────────────────────────────
     print("\n── Final Score ───────────────────────────────────────────────")
-    print(f"  Composite quality:  {results['composite_quality'] * 100:.1f}%")
-    print(f"  Efficiency score:   {results['efficiency_score'] * 100:.1f}%")
-    print(f"  Verdict:            {emoji} {verdict}")
+    print(f"  Composite quality:    {results['composite_quality'] * 100:.1f}%")
+    print(f"  Efficiency score:     {results['efficiency_score'] * 100:.1f}%")
+    print(f"  Verdict:              {emoji} {verdict}")
 
     if verdict == "FAIL":
         print("\n  ❌ Poor quality and/or excessive tool calls.")
