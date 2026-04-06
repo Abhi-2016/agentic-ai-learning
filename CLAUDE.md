@@ -78,20 +78,23 @@ python agent.py "your topic"
 
 ### Full Eval Pipeline (run after agent produces a paper)
 ```bash
-python agent.py "your topic" > last_paper.txt  # produce the paper
+python agent.py "your topic" > last_paper.txt  # produce the paper + run_metrics.json
+python evals/eval_efficiency.py                 # runs all 4 evals in sequence
+# or run individually:
 python evals/eval_grounding.py                  # Eval 1: citation coverage
 python evals/eval_factuality.py                 # Eval 2: LLM-as-judge
 python evals/eval_factuality.py --human-review  # Eval 2 with calibration spot-check
 python evals/eval_completeness.py               # Eval 3: rubric-based section + coverage check
+python evals/eval_efficiency.py                 # Eval 4: quality per tool call (runs 1–3 internally)
 ```
 
-### What's Built (Week 2 — Evals 🔄)
+### What's Built (Week 2 — Evals ✅)
 | Eval | Status | Method |
 |---|---|---|
 | Grounding | ✅ Built | Rule-based citation checker |
 | Factuality | ✅ Built | LLM-as-judge (claude-haiku) + `--human-review` calibration |
 | Completeness | ✅ Built | Rubric-based section coverage (3 Haiku calls, one per criterion) |
-| Efficiency | ⏳ Next | Quality per tool call ratio |
+| Efficiency | ✅ Built | Composite quality / (external calls / baseline 6) |
 
 ---
 
@@ -157,10 +160,10 @@ research-synthesizer/
 ├── README.md           # Public-facing project showcase
 ├── CLAUDE.md           # This file — internal context for Claude Code
 └── evals/
-    ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
-    ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + human-review calibration
+    ├── eval_grounding.py     # ✅ Eval 1: rule-based citation checker
+    ├── eval_factuality.py    # ✅ Eval 2: LLM-as-judge + human-review calibration
     ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check (3 Haiku calls)
-    └── eval_efficiency.py    # ⏳ Eval 4: quality per tool call
+    └── eval_efficiency.py    # ✅ Eval 4: composite quality / (external calls / baseline 6)
 ```
 
 ---
@@ -187,6 +190,18 @@ The stopping condition in `agent.py` verifies the scratchpad independently of th
 
 ### Why `.env` via python-dotenv instead of `export`
 Exporting keys per session is error-prone and easy to forget. `python-dotenv` reads `.env` at import time, injecting values into `os.environ` before any tool or API call. The `.env` file is gitignored by `*.env` pattern. `.env.example` is committed so any future collaborator knows exactly what keys are needed.
+
+### Why citation format is enforced in the system prompt (not the eval)
+The agent generated 3+ citation styles in the same paper — named attribution, footnote-style, end-of-paragraph grouping. Each new format required a regex patch in the eval. That is the wrong layer to fix.
+
+Rule: fix the generation layer (system prompt), not the inspection layer (eval). One citation standard upstream means both evals work without code changes. Every patch in the eval is a symptom of a missing standard upstream.
+
+The enforced format: `([Author, Year](URL))` inline at the end of every cited sentence.
+
+### Why Eval 4 only counts search + read calls (not save_note) against efficiency
+`save_note` is only called when the agent determines a source is strong — it is the desired outcome, not overhead. Penalising it would punish quality. `search_web` and `read_page_contents` are the exploration calls where waste actually shows up (duplicate searches, pages that yield nothing saved).
+
+Baseline = 6: 3 searches + 3 reads. Formula: `efficiency = composite_quality / (external_calls / 6)`.
 
 ### Why the system prompt has a LANGUAGE DISCIPLINE section (verbatim constraint)
 The agent produced fluent, readable prose that paraphrased and elaborated beyond what sources actually said. "Only state facts from your notes" was insufficient — the agent still synthesised plausible language. Adding "use the exact language from your notes" improved the factuality eval from 67% WARN to 100% PASS.
@@ -218,7 +233,7 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 | Week | Focus | Status |
 |---|---|---|
 | 1 | Agent foundations (ReAct, tools, memory, logging) | ✅ Complete |
-| 2 | Evals (grounding, factuality, completeness, efficiency) | 🔄 In Progress |
+| 2 | Evals (grounding, factuality, completeness, efficiency) | ✅ Complete |
 | 3 | Agent 2: Multi-agent PM Interview Coach | ⏳ Pending |
 | 4 | Meta-evals + Agent Design Doc + interview story | ⏳ Pending |
 
@@ -231,6 +246,7 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - Quiz 5: Grounding vs. factuality ✅
 - Quiz 6: LLM-as-judge risk + human-in-the-loop mitigation ✅
 - Quiz 7: Rubric design (3-point completeness rubric) ✅
+- Quiz 8: Efficiency metric selection — PM dashboard vs. engineer dashboard ✅
 
 **Merged PRs:**
 - PR #1: `feature/wire-real-tools` — live Tavily + BeautifulSoup ✅
@@ -241,3 +257,9 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - PR #7: `feature/week2-eval-completeness` — Eval 3 (completeness) built ✅
 - PR #8: `feature/week2-eval-factuality-extraction-fix` — bold references + slash separator + bibliography skip ✅
 - PR #9: `feature/week2-completeness-full-paper` — remove 1500-char truncation in Eval 3 ✅
+- PR #10: `feature/week2-docs-update-completeness` — CLAUDE.md + README.md sync through PR #9 ✅
+- PR #11: `feature/repo-topics-badges` — GitHub topics + shields.io badges ✅
+- PR #12: `feature/week2-eval-efficiency` — Eval 4 (efficiency) + run_metrics.json logging ✅
+- PR #13: `feature/week2-citation-format-standard` — single citation format enforced in system prompt ✅
+- PR #14: `feature/week2-grounding-sentence-split-fix` — grounding eval sentence splitter fix ✅
+- PR #15: `feature/week2-grounding-split-fix-v2` — handle multi-split citation fragments ✅
