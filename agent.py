@@ -69,6 +69,15 @@ def run_agent(topic: str) -> str:
     print(f"Research Synthesizer — Topic: {topic}", file=sys.stderr)
     print(f"{'='*60}\n", file=sys.stderr)
 
+    # ── Tool call counters ────────────────────────────────────────────────────
+    # Track each tool type separately. Eval 4 (Efficiency) only penalises
+    # search_web and read_page_contents — the external API calls that represent
+    # exploration overhead. save_note is the desired outcome (agent found a
+    # strong source) so it is logged but NOT counted against efficiency.
+    search_calls = 0
+    read_calls = 0
+    save_calls = 0
+
     # ── Main agentic loop ─────────────────────────────────────────────────────
     # This loop is the difference between a chatbot and an agent.
     # A chatbot sends one message, gets one reply, done.
@@ -136,6 +145,14 @@ def run_agent(topic: str) -> str:
                     # ── Execute the tool (calls tools.py dispatch_tool) ───────
                     result = dispatch_tool(tool_name, tool_input)
 
+                    # Eval 4: count by tool type — only search + read are overhead
+                    if tool_name == "search_web":
+                        search_calls += 1
+                    elif tool_name == "read_page_contents":
+                        read_calls += 1
+                    elif tool_name == "save_note":
+                        save_calls += 1   # logged for visibility, not penalised
+
                     # Show a brief result preview — enough to see what came back
                     print(f"\n  ✅ Result preview: {str(result)[:200]}...", file=sys.stderr)
 
@@ -199,6 +216,27 @@ def run_agent(topic: str) -> str:
                 print(f"\n{'='*60}", file=sys.stderr)
                 print("Stopping condition met. Final paper below.", file=sys.stderr)
                 print(f"{'='*60}\n", file=sys.stderr)
+
+                # ── Write run metrics for Eval 4 (Efficiency) ────────────────
+                # Log per-tool counts so Eval 4 can use search + read only.
+                # save_note is the desired outcome, not overhead — logged for
+                # visibility but excluded from the efficiency penalty calculation.
+                import json as _json
+                _metrics = {
+                    "topic": topic,
+                    "num_iterations": iteration + 1,
+                    "search_calls": search_calls,
+                    "read_calls": read_calls,
+                    "save_calls": save_calls,
+                }
+                Path("run_metrics.json").write_text(_json.dumps(_metrics, indent=2))
+                print(
+                    f"  📊 Metrics saved: {search_calls} searches, "
+                    f"{read_calls} reads, {save_calls} saves "
+                    f"({iteration + 1} iterations)",
+                    file=sys.stderr
+                )
+
                 return final_text
             else:
                 # Agent said it was done but didn't meet the stopping condition.
