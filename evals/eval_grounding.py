@@ -146,11 +146,14 @@ def scan_uncited_claims(paper: str) -> list[str]:
 
             # Also check the immediately following fragment.
             # Our citation format ([Author, Year](URL)) follows the sentence
-            # period as a separate fragment after splitting — e.g. a period
-            # inside a quoted string like "Not 99%. 100%." causes the splitter
-            # to cut mid-sentence, leaving the citation in the next fragment.
+            # period as a separate fragment after splitting. A period inside a
+            # quoted string (e.g. "Not 99%. 100%.") can cause multiple splits,
+            # leaving the citation fragment starting with tail text rather than "([".
+            # We check for ](https:// — the markdown hyperlink opener — which is
+            # specific to our citation format and won't false-positive on
+            # unrelated URLs in the next sentence.
             next_fragment = sentences[i + 1] if i + 1 < len(sentences) else ""
-            if next_fragment.startswith("([") and re.search(r'https?://', next_fragment[:300]):
+            if re.search(r'\]\(https?://', next_fragment[:300]):
                 continue  # citation is in the immediately following fragment — not uncited
 
             uncited.append(sentence.strip())
