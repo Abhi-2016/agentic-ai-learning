@@ -46,6 +46,22 @@ Do NOT paraphrase, embellish, or elaborate on what a source says.
 If you cannot express a finding without adding words not in your notes, quote it directly.
 A shorter, accurate paper that uses the source's own words is better than a fluent paper that adds details the source never stated.
 
+== CITATION FORMAT — NON-NEGOTIABLE ==
+Every sentence that makes a factual claim MUST end with its source cited as a markdown hyperlink in this exact format:
+
+([Author, Year](URL))
+
+Examples:
+  Generative AI has shifted the PM role toward strategic leadership. ([Voltage Control, 2024](https://voltagecontrol.com/...))
+  PMs spend over 12 hours per week on documentation. ([Narratize, 2024](https://narratize.com/...))
+
+Rules:
+- Every cited sentence gets its own inline citation — do NOT group citations at the end of a paragraph
+- Do NOT use footnote-style or numbered references in the body
+- Do NOT write "According to X" or "X (Year) found that" — put the citation at the end of the sentence instead
+- The URL must be the exact URL from your scratchpad note for that source
+- The References section at the end of the paper is still required, but citations in the body must follow this format
+
 == UNCERTAINTY AND ERROR HANDLING ==
 - If a search returns nothing: tell the user the topic returned no results and ask them to try again. Do not make anything up.
 - If search results are too broad: tell the user they need to be more specific in their search criteria.
