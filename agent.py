@@ -69,6 +69,11 @@ def run_agent(topic: str) -> str:
     print(f"Research Synthesizer — Topic: {topic}", file=sys.stderr)
     print(f"{'='*60}\n", file=sys.stderr)
 
+    # ── Tool call counter ─────────────────────────────────────────────────────
+    # Counts every dispatch_tool() call this run.
+    # Written to run_metrics.json on success — used by Eval 4 (Efficiency).
+    tool_call_count = 0
+
     # ── Main agentic loop ─────────────────────────────────────────────────────
     # This loop is the difference between a chatbot and an agent.
     # A chatbot sends one message, gets one reply, done.
@@ -135,6 +140,7 @@ def run_agent(topic: str) -> str:
 
                     # ── Execute the tool (calls tools.py dispatch_tool) ───────
                     result = dispatch_tool(tool_name, tool_input)
+                    tool_call_count += 1   # Eval 4: one more tool call logged
 
                     # Show a brief result preview — enough to see what came back
                     print(f"\n  ✅ Result preview: {str(result)[:200]}...", file=sys.stderr)
@@ -199,6 +205,21 @@ def run_agent(topic: str) -> str:
                 print(f"\n{'='*60}", file=sys.stderr)
                 print("Stopping condition met. Final paper below.", file=sys.stderr)
                 print(f"{'='*60}\n", file=sys.stderr)
+
+                # ── Write run metrics for Eval 4 (Efficiency) ────────────────
+                # Eval 4 needs to know how many tool calls were made this run.
+                # We write a small JSON file here — right at the success path —
+                # so the count reflects one complete, successful agent run.
+                import json as _json
+                _metrics = {
+                    "topic": topic,
+                    "num_tool_calls": tool_call_count,
+                    "num_iterations": iteration + 1,
+                }
+                Path("run_metrics.json").write_text(_json.dumps(_metrics, indent=2))
+                print(f"  📊 Metrics saved: {tool_call_count} tool calls, {iteration + 1} iterations",
+                      file=sys.stderr)
+
                 return final_text
             else:
                 # Agent said it was done but didn't meet the stopping condition.
