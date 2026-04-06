@@ -2,6 +2,13 @@
 
 > A hands-on learning project built to deeply understand Agentic AI architecture, memory systems, flow types, and evaluation frameworks — from the perspective of an AI Product Manager.
 
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet-D97706?logoColor=white)
+![Tavily](https://img.shields.io/badge/Search-Tavily%20API-10B981?logoColor=white)
+![PRs Merged](https://img.shields.io/badge/PRs%20Merged-10-brightgreen)
+![Evals](https://img.shields.io/badge/Evals-3%20of%204%20Built-3B82F6?logoColor=white)
+![Week](https://img.shields.io/badge/Week-2%20Evals-8B5CF6?logoColor=white)
+
 ---
 
 ## Why This Project Exists
