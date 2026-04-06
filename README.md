@@ -5,9 +5,9 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
 ![Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet-D97706?logoColor=white)
 ![Tavily](https://img.shields.io/badge/Search-Tavily%20API-10B981?logoColor=white)
-![PRs Merged](https://img.shields.io/badge/PRs%20Merged-10-brightgreen)
-![Evals](https://img.shields.io/badge/Evals-3%20of%204%20Built-3B82F6?logoColor=white)
-![Week](https://img.shields.io/badge/Week-2%20Evals-8B5CF6?logoColor=white)
+![PRs Merged](https://img.shields.io/badge/PRs%20Merged-15-brightgreen)
+![Evals](https://img.shields.io/badge/Evals-4%20of%204%20Built-3B82F6?logoColor=white)
+![Week](https://img.shields.io/badge/Week-2%20Complete-8B5CF6?logoColor=white)
 
 ---
 
@@ -173,7 +173,7 @@ Four evaluation dimensions, each taught before built:
 | **Grounding** | Does every claim have a traceable source? | Rule-based (citation check) | ✅ |
 | **Factuality** | Are the claims accurately represented from their sources? | LLM-as-judge against scratchpad ground truth | ✅ |
 | **Completeness** | Does the paper cover the topic, have good structure, and use 3 strong sources? | Rubric-based scoring (3 independent judge calls) | ✅ |
-| **Efficiency** | Quality per tool call | Ratio metric | ⏳ |
+| **Efficiency** | Quality per tool call | Composite quality / (external calls / baseline) | ✅ |
 
 **The key PM insights:**
 - **Attribution ≠ truth**: Grounding checks that a URL is present. Factuality checks what's actually said near that URL. An agent can be fully grounded and still misrepresent its sources.
@@ -195,7 +195,7 @@ research-synthesizer/
     ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
     ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + --human-review calibration
     ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check
-    └── eval_efficiency.py    # ⏳ Eval 4: quality per tool call (coming soon)
+    └── eval_efficiency.py    # ✅ Eval 4: composite quality / (external calls / baseline)
 ```
 
 ---
@@ -225,17 +225,15 @@ Watch the terminal — every iteration shows the agent's Thought, the tool it ch
 ### Run the Eval Suite
 
 ```bash
-# Eval 1: Grounding — does every claim have a citation?
-python evals/eval_grounding.py
+# Run all 4 evals in one command (recommended)
+python evals/eval_efficiency.py
 
-# Eval 2: Factuality — do claims accurately represent their sources?
-python evals/eval_factuality.py
-
-# Eval 2 with human calibration spot-check
-python evals/eval_factuality.py --human-review
-
-# Eval 3: Completeness — does the paper cover the topic, have structure, and use 3 strong sources?
-python evals/eval_completeness.py
+# Or run individually:
+python evals/eval_grounding.py      # Eval 1: citation coverage
+python evals/eval_factuality.py     # Eval 2: LLM-as-judge
+python evals/eval_factuality.py --human-review  # Eval 2 with human calibration
+python evals/eval_completeness.py   # Eval 3: rubric-based coverage
+python evals/eval_efficiency.py     # Eval 4: quality per tool call (runs 1–3 internally)
 ```
 
 ---
@@ -259,7 +257,7 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Grounding eval (rule-based citation checker) ✅
 - [x] Factuality eval (LLM-as-judge + human calibration) ✅
 - [x] Completeness eval (rubric-based, 3-criterion, 3 independent Haiku judge calls) ✅
-- [ ] Efficiency eval (quality per tool call)
+- [x] Efficiency eval (composite quality / external call ratio, PM dashboard metric) ✅
 
 ### Week 3 — Agent 2: Multi-Agent PM Interview Coach
 - [ ] Multi-agent architecture (Orchestrator + Questioner + Evaluator)
@@ -296,6 +294,12 @@ main (stable — always working)
 | #7 | `feature/week2-eval-completeness` | Eval 3 (completeness) built — 3-criterion rubric, topic auto-extraction |
 | #8 | `feature/week2-eval-factuality-extraction-fix` | Eval 2 extraction fixes: bold references, slash separator, bibliography skip |
 | #9 | `feature/week2-completeness-full-paper` | Eval 3 fix: send full paper to judge (remove 1500-char truncation) |
+| #10 | `feature/week2-docs-update-completeness` | CLAUDE.md + README.md sync through PR #9 |
+| #11 | `feature/repo-topics-badges` | GitHub topics + shields.io badges |
+| #12 | `feature/week2-eval-efficiency` | Eval 4 (efficiency) + run_metrics.json per-tool logging |
+| #13 | `feature/week2-citation-format-standard` | Single citation format enforced in system prompt |
+| #14 | `feature/week2-grounding-sentence-split-fix` | Grounding eval: peek at next fragment for citation |
+| #15 | `feature/week2-grounding-split-fix-v2` | Grounding eval: handle multi-split citation fragments |
 
 ---
 
