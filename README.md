@@ -275,7 +275,7 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Agent Thought traces surfaced in terminal output
 - [x] Agent verified working end-to-end ✅
 
-### Week 2 — Evals 🔄
+### Week 2 — Evals ✅
 - [x] Grounding eval (rule-based citation checker) ✅
 - [x] Factuality eval (LLM-as-judge + human calibration) ✅
 - [x] Completeness eval (rubric-based, 3-criterion, 3 independent Haiku judge calls) ✅
@@ -285,19 +285,63 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Multi-agent architecture (Orchestrator + Agent A + Agent B)
 - [x] Persistent memory across sessions (coach_history.json)
 - [x] Orchestrator-owned context injection (CLAUDE.md → Agent A)
-- [x] Evaluator rubric design + iterative calibration
+- [x] Evaluator rubric design + iterative calibration (3 sessions)
 - [x] Python router orchestration
 
-### Week 3B — LLM Orchestrator with Dynamic Routing
+### Week 3B — LLM Orchestrator with Dynamic Routing ⏳
 - [ ] Replace Python router with LLM orchestrator
-- [ ] Dynamic routing based on context (topic difficulty, learner history)
-- [ ] Enterprise-pattern multi-agent flow
+- [ ] Add third specialist agent to create a real routing decision
+- [ ] Compare Python router vs. LLM orchestrator: latency, cost, failure modes
 
-### Week 4 — Meta-Evals + Agent Design Doc
-- [ ] Evaluating the evaluator (calibration + consistency)
-- [ ] Orchestrator accuracy testing
+### Week 4 — Meta-Evals + Agent Design Doc ⏳
+- [ ] Evaluator calibration: does Agent B's score match a human's?
+- [ ] Evaluator consistency: same answer → same score twice?
+- [ ] Orchestrator accuracy: does it route to the right agent?
 - [ ] Agent Design Doc (PRD equivalent for agents)
 - [ ] End-to-end interview story
+
+### Week 5 — MCP: The New Integration Standard (and Its Limits) ⏳
+Model Context Protocol — Anthropic's open standard for connecting agents to tools. Becoming the "USB-C for agent tools" as major SaaS providers publish MCP servers. But it comes with a real tradeoff: loading a large tool catalogue burns thousands of tokens before the agent does anything useful, and model performance degrades with 50+ tools in context.
+- [ ] What MCP is and why it matters as a product governance decision
+- [ ] The token problem: tool sprawl and context cost
+- [ ] Mitigation approaches: tool filtering, namespacing, A2A delegation, minimal tool sets
+- [ ] Add MCP-connected tools to Research Synthesizer; measure token cost vs. custom tools
+- [ ] Tool call accuracy as a new eval dimension
+
+### Week 6 — Production Reliability & Trajectory Evals ⏳
+The "reliability cliff" — agents that pass testing degrade in production. Output evals catch wrong answers; trajectory evals catch wrong reasoning paths.
+- [ ] Trajectory evaluation vs. output evaluation
+- [ ] What to instrument: every agent call logged with inputs, outputs, latency, cost
+- [ ] Build trajectory evaluator for the PM Interview Coach
+- [ ] Evals as a CI/CD gate: failing evals = bugs, not warnings
+
+### Week 7 — Agent Economics & Async Product Design ⏳
+How do you design a product around something that costs money, takes minutes, and sometimes fails mid-task?
+- [ ] Cost per task modeling (not per token) — the PM unit that matters at scale
+- [ ] Latency UX patterns: async execution, progress indicators, partial results, cancellation
+- [ ] Human-in-the-loop as deliberate product design — not a fallback
+- [ ] Add cost tracker to Research Synthesizer; add human approval checkpoint to Interview Coach
+
+### Week 8 — Enterprise Safety & Governance ⏳
+What breaks when agents go to production at scale — and what does a PM own in that?
+- [ ] Prompt injection: the new CSRF — malicious tool results that hijack agent behaviour
+- [ ] Agent scope definition: permissions, boundaries, guardrails
+- [ ] Data governance: what can an agent read/write, and under what conditions?
+- [ ] Write an Agent Specification doc for the Research Synthesizer as an enterprise deployment
+
+### Week 9 — Beyond MCP: Tool Access Alternatives ⏳
+MCP is not the only answer. Understanding the alternatives is what separates a PM who evaluates vendor claims from one who follows trends.
+
+| Alternative | When it wins over MCP |
+|---|---|
+| Direct API integration | Stable, well-documented APIs; small tool sets |
+| A2A (Agent-to-Agent) | Large tool catalogues; keeps tools out of orchestrator context |
+| RAG over tool descriptions | Solves token problem without A2A overhead; adds retrieval latency |
+| Workflow engines (n8n, Zapier) | Fixed flows that don't require LLM reasoning to pick tools |
+
+- [ ] The PM decision framework: how many tools, how stable, who owns them, what's the token budget?
+- [ ] Replace one MCP tool with a direct API integration; measure the token difference
+- [ ] Implement RAG-over-tools: embed tool descriptions, retrieve top-3 at query time
 
 ---
 
