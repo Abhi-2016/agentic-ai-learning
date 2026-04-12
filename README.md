@@ -5,9 +5,9 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
 ![Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet-D97706?logoColor=white)
 ![Tavily](https://img.shields.io/badge/Search-Tavily%20API-10B981?logoColor=white)
-![PRs Merged](https://img.shields.io/badge/PRs%20Merged-15-brightgreen)
+![PRs Merged](https://img.shields.io/badge/PRs%20Merged-17-brightgreen)
 ![Evals](https://img.shields.io/badge/Evals-4%20of%204%20Built-3B82F6?logoColor=white)
-![Week](https://img.shields.io/badge/Week-2%20Complete-8B5CF6?logoColor=white)
+![Week](https://img.shields.io/badge/Week-3%20Complete-8B5CF6?logoColor=white)
 
 ---
 
@@ -165,7 +165,7 @@ Every action is preceded by a printed Thought showing rationale, chosen tool, an
 | **Loop** | Keep searching until 3 sources are saved |
 | **Parallel** | (Week 2) Fan-out to multiple sources simultaneously |
 
-### 5. Evals (Week 2 — in progress)
+### 5. Evals (Week 2 — Complete ✅)
 Four evaluation dimensions, each taught before built:
 
 | Eval | What It Measures | Method | Status |
@@ -179,6 +179,24 @@ Four evaluation dimensions, each taught before built:
 - **Attribution ≠ truth**: Grounding checks that a URL is present. Factuality checks what's actually said near that URL. An agent can be fully grounded and still misrepresent its sources.
 - **Synthesis vs. attribution**: Attribution is the model repeating source language — low risk, eval-verifiable. Synthesis is the model connecting ideas to form new claims — higher risk, unverifiable against any single source. Fluent, eloquent writing requires synthesis. Every "taken together, these findings suggest..." is a claim no scratchpad entry contains. As a PM, you must deliberately decide how much synthesis you authorise — and use the factuality eval to measure where you actually land.
 
+### 6. Multi-Agent Architecture (Week 3 — Complete ✅)
+
+**Agent 2: PM Interview Coach** — a three-component multi-agent system:
+
+```
+coach.py (Orchestrator)
+    ├── Reads CLAUDE.md → extracts learner context (quizzes passed, study scope)
+    ├── Agent A: question_generator.py → one calibrated Haiku call per question
+    ├── Agent B: evaluator.py → one Haiku call to score + give feedback
+    └── Writes all session history to coach_history.json
+```
+
+**Key architectural decisions made:**
+- **Python router, not LLM orchestrator** — the flow is fixed (question → answer → evaluate → save), so Python logic handles routing. No LLM reasoning needed for a deterministic sequence.
+- **Separate context windows** — Agent A and Agent B are independent, stateless Haiku calls. Neither knows the other exists.
+- **Orchestrator owns all context** — Agent A does not read files itself. The orchestrator reads CLAUDE.md once at startup and passes the relevant section as a parameter. This makes context ownership inspectable and debuggable.
+- **Evaluator rubric is calibrated, not just defined** — calibration notes prevent the LLM judge from defaulting to the harshest reading of ambiguous boundaries. Brief ≠ wrong. Complete ≠ perfect.
+
 ---
 
 ## Project Structure
@@ -191,11 +209,15 @@ research-synthesizer/
 ├── scratchpad.json       # Persistent memory — survives restarts
 ├── requirements.txt      # anthropic, requests, beautifulsoup4, python-dotenv
 ├── .env.example          # API key template — copy to .env and fill in values
-└── evals/
-    ├── eval_grounding.py   # ✅ Eval 1: rule-based citation checker
-    ├── eval_factuality.py  # ✅ Eval 2: LLM-as-judge + --human-review calibration
-    ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check
-    └── eval_efficiency.py    # ✅ Eval 4: composite quality / (external calls / baseline)
+├── evals/
+│   ├── eval_grounding.py      # ✅ Eval 1: rule-based citation checker
+│   ├── eval_factuality.py     # ✅ Eval 2: LLM-as-judge + --human-review calibration
+│   ├── eval_completeness.py   # ✅ Eval 3: rubric-based section + coverage check
+│   └── eval_efficiency.py     # ✅ Eval 4: composite quality / (external calls / baseline)
+└── interview_coach/
+    ├── coach.py               # ✅ Orchestrator — Python router, owns all state
+    ├── question_generator.py  # ✅ Agent A — calibrated question generator (Haiku)
+    └── evaluator.py           # ✅ Agent B — 1–5 answer scorer with feedback (Haiku)
 ```
 
 ---
@@ -259,11 +281,17 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Completeness eval (rubric-based, 3-criterion, 3 independent Haiku judge calls) ✅
 - [x] Efficiency eval (composite quality / external call ratio, PM dashboard metric) ✅
 
-### Week 3 — Agent 2: Multi-Agent PM Interview Coach
-- [ ] Multi-agent architecture (Orchestrator + Questioner + Evaluator)
-- [ ] Persistent memory across sessions
-- [ ] Inter-agent handoff protocol design
-- [ ] Conditional routing + feedback loops
+### Week 3 — Agent 2: Multi-Agent PM Interview Coach ✅
+- [x] Multi-agent architecture (Orchestrator + Agent A + Agent B)
+- [x] Persistent memory across sessions (coach_history.json)
+- [x] Orchestrator-owned context injection (CLAUDE.md → Agent A)
+- [x] Evaluator rubric design + iterative calibration
+- [x] Python router orchestration
+
+### Week 3B — LLM Orchestrator with Dynamic Routing
+- [ ] Replace Python router with LLM orchestrator
+- [ ] Dynamic routing based on context (topic difficulty, learner history)
+- [ ] Enterprise-pattern multi-agent flow
 
 ### Week 4 — Meta-Evals + Agent Design Doc
 - [ ] Evaluating the evaluator (calibration + consistency)
@@ -300,6 +328,8 @@ main (stable — always working)
 | #13 | `feature/week2-citation-format-standard` | Single citation format enforced in system prompt |
 | #14 | `feature/week2-grounding-sentence-split-fix` | Grounding eval: peek at next fragment for citation |
 | #15 | `feature/week2-grounding-split-fix-v2` | Grounding eval: handle multi-split citation fragments |
+| #16 | `feature/week2-docs-final` | CLAUDE.md + README.md sync through PR #15 |
+| #17 | `feature/week3-interview-coach` | Agent 2: multi-agent PM Interview Coach (3 files) |
 
 ---
 
