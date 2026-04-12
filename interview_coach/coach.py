@@ -29,6 +29,7 @@ Run with:
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
@@ -57,6 +58,55 @@ TOPICS = [
 
 # Persistent memory — same directory as this file
 HISTORY_PATH = Path(__file__).parent / "coach_history.json"
+
+# CLAUDE.md lives at the project root — it's the source of truth for
+# what the learner has studied and which quizzes they've passed.
+CLAUDE_MD_PATH = Path(__file__).parent.parent / "CLAUDE.md"
+
+
+# ── Learner context ────────────────────────────────────────────────────────────
+
+def load_learner_context() -> str:
+    """
+    Read CLAUDE.md and extract the learning progress section.
+
+    The orchestrator reads this once at startup and passes it to Agent A
+    so questions are calibrated to concepts the learner has actually studied.
+
+    This is the 'orchestrator passes what agents need' pattern from Quiz 9:
+    Agent A does NOT read files itself — it receives context from the orchestrator.
+    If Agent A read the plan directly, it would be violating single responsibility.
+    """
+    if not CLAUDE_MD_PATH.exists():
+        return ""
+
+    content = CLAUDE_MD_PATH.read_text()
+
+    # Extract from the Learning Progress Tracker section to the next ## heading.
+    # This gives us: weeks completed, quizzes passed — everything Agent A needs
+    # to calibrate question difficulty and avoid asking about unstudied topics.
+    start_marker = "## Learning Progress Tracker"
+    start = content.find(start_marker)
+    if start == -1:
+        return ""
+
+    section = content[start:]
+    next_section = re.search(r'\n## ', section[1:])  # find next heading after the first
+    if next_section:
+        section = section[:next_section.start() + 1]
+
+    return f"""Learner profile:
+- Role: Product Manager (not an engineer) learning Agentic AI
+- Goal: Speak credibly about agentic AI in a PM interview
+- Has built: 2 agents in a learning context (not production systems)
+
+{section.strip()}
+
+Question calibration:
+- Only ask about concepts listed under "Quizzes passed" above
+- Frame as "explain X", "why does X matter", or "what tradeoff does X create"
+- Do NOT use war-story framing like "when your production agent failed..." — learner has built 2 agents in a structured course, not shipped production systems
+- Difficulty: foundational to intermediate — not senior engineer level"""
 
 
 # ── Memory functions ───────────────────────────────────────────────────────────
@@ -156,6 +206,11 @@ def run_coach() -> None:
     print("\nPractice explaining agentic AI concepts in plain language.")
     print("Each answer is scored 1–5 with specific feedback.")
 
+    # Load learner context once at startup — passed to Agent A on every question.
+    # Reading it here (not inside the loop) means one file read per session,
+    # not one per question. The orchestrator owns this context — agents don't.
+    learner_context = load_learner_context()
+
     show_session_summary()
 
     while True:
@@ -178,8 +233,10 @@ def run_coach() -> None:
             continue
 
         # ── Step 1: Agent A generates the question ────────────────────────────
+        # Pass learner_context so Agent A calibrates to what was actually studied.
+        # Agent A receives it as input — it does not fetch it itself.
         print(f"\n  Generating question on: {topic}...")
-        question = generate_question(topic)
+        question = generate_question(topic, learner_context)
 
         print(f"\n── Question ──────────────────────────────────────────────")
         print(f"  {question}")

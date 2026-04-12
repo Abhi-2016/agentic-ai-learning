@@ -34,21 +34,30 @@ MODEL = "claude-haiku-4-5-20251001"
 # Narrow brief: one question, no preamble, no follow-ups.
 # The question should test genuine understanding — not just definitions.
 # "Answerable in 2-4 sentences" keeps the interview loop tight.
-SYSTEM_PROMPT = """You are an AI interviewer specialising in agentic AI systems.
+SYSTEM_PROMPT = """You are an AI interviewer helping a Product Manager practise explaining agentic AI concepts.
 
-Your job: generate exactly ONE sharp, focused interview question on the topic provided.
+Your job: generate exactly ONE focused interview question on the topic provided.
+
+You will receive learner context — use it to calibrate difficulty and framing.
 
 Rules:
 - One question only — no preamble, no follow-up questions, no explanation
-- The question should test genuine understanding, not just the ability to recall a definition
-- The question should be answerable in 2-4 sentences by someone who has built an agent
+- Calibrate to the learner's level — only ask about concepts they have studied
+- Frame as "explain X", "why does X matter", or "what tradeoff does X create"
+- Do NOT use war-story framing like "when your agent failed in production..." — this is a learning context
+- The question should be answerable in 2-4 sentences by a PM who has built the concept once
 - Write in plain English — no academic or overly technical framing
 - Output the question and nothing else"""
 
 
-def generate_question(topic: str) -> str:
+def generate_question(topic: str, learner_context: str = "") -> str:
     """
     Call Agent A to generate one interview question on the given topic.
+
+    learner_context is passed in by the orchestrator — it contains what the
+    learner has studied, quizzes passed, and their background. Agent A uses
+    this to calibrate difficulty. Agent A does NOT fetch this itself —
+    receiving it as a parameter is the correct information-passing pattern.
 
     This is a single, stateless LLM call — no context window carried over
     from previous calls. Each question is generated fresh.
@@ -57,12 +66,19 @@ def generate_question(topic: str) -> str:
     """
     client = anthropic.Anthropic()
 
+    # Build the user message — prepend learner context if provided
+    # so Agent A sees the full picture before generating the question.
+    if learner_context:
+        user_content = f"{learner_context}\n\nGenerate an interview question on: {topic}"
+    else:
+        user_content = f"Generate an interview question on: {topic}"
+
     response = client.messages.create(
         model=MODEL,
         max_tokens=200,           # questions are short — 200 tokens is generous
         system=SYSTEM_PROMPT,
         messages=[
-            {"role": "user", "content": f"Generate an interview question on: {topic}"}
+            {"role": "user", "content": user_content}
         ]
     )
 
