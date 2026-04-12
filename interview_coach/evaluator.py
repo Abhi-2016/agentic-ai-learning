@@ -14,11 +14,14 @@ THE RUBRIC (designed by Abhishek, Quiz 10):
     4. Length     — focused; not too short (incomplete) or too long (point gets lost)
 
   Scale:
-    1 — Off-topic or completely wrong
-    2 — On the right topic but unclear, jargon-heavy, or incomplete
-    3 — Correct and understandable but missing a key dimension
-    4 — Correct, clear, and covers the topic well in plain terms
-    5 — Correct, clear, concise, and explainable to a non-technical stakeholder
+    1 — Off-topic or conceptually wrong
+    2 — Correct topic but explanation is confused, wrong on mechanism, or jargon without understanding
+    3 — Correct and clear but too brief to stand alone (right answer, not enough detail)
+    4 — Correct, clear, at least one concrete detail or example anchors the explanation
+    5 — All of 4, plus naturally accessible to a non-technical stakeholder
+
+  Calibration: A brief but correct answer should score ≥ 3. Score 2 only if the explanation is wrong or
+  confused — not merely short. Length alone is not grounds for a 2.
 
 WHY IT'S A SEPARATE AGENT:
   Same reason as Agent A — single responsibility. If scoring is too harsh or
@@ -61,11 +64,14 @@ Evaluate the answer against these four criteria:
 4. Length     — is it focused and appropriately concise? Too short = incomplete. Too long = the point gets lost.
 
 Scoring scale:
-1 — Off-topic or completely wrong
-2 — On the right topic but unclear, jargon-heavy, or incomplete
-3 — Correct and understandable but missing a key dimension of the topic
-4 — Correct, clear, and covers the topic well in plain terms
-5 — Correct, clear, concise, and explainable to a non-technical stakeholder
+1 — Off-topic or conceptually wrong
+2 — Correct topic but explanation is confused, wrong on the mechanism, or uses jargon without understanding
+3 — Correct and clear but too brief — identifies the right answer without enough detail to stand alone
+4 — Correct, clear, and includes at least one concrete detail or example that anchors the explanation
+5 — All of 4, plus naturally accessible to a non-technical stakeholder without losing accuracy
+
+Calibration note: A brief answer that correctly names the right concept and mechanism should score at least 3.
+Only score 2 if the explanation itself is wrong or confused — not merely short.
 
 Respond in exactly this format (three lines, nothing else):
 SCORE: <1|2|3|4|5>
