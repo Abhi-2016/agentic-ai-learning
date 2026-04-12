@@ -96,9 +96,51 @@ python evals/eval_efficiency.py                 # Eval 4: quality per tool call 
 | Completeness | ✅ Built | Rubric-based section coverage (3 Haiku calls, one per criterion) |
 | Efficiency | ✅ Built | Composite quality / (external calls / baseline 6) |
 
+### What's Built (Week 3 — Agent 2: PM Interview Coach ✅)
+
+**Multi-agent system, verified working end-to-end.**
+
+| File | Role | Notes |
+|---|---|---|
+| `interview_coach/coach.py` | Orchestrator | Python router — coordinates Agent A + B, owns all state and file I/O |
+| `interview_coach/question_generator.py` | Agent A | Single Haiku call — generates one question calibrated to learner's study scope |
+| `interview_coach/evaluator.py` | Agent B | Single Haiku call — scores answer 1–5 with strength + improvement feedback |
+| `interview_coach/coach_history.json` | Persistent memory | Every question, answer, and score — written by orchestrator only |
+
+**Run the coach:**
+```bash
+python3 interview_coach/coach.py
+```
+
 ---
 
 ## Architecture
+
+### Agent 2 — Multi-Agent PM Interview Coach
+
+```
+coach.py (Orchestrator)
+    │
+    ├── load_learner_context()     # reads CLAUDE.md once at startup
+    │       └── extracts: weeks complete, quizzes passed, PM background
+    │
+    ├── generate_question(topic, learner_context)  → Agent A (Haiku)
+    │       └── returns: one calibrated question string
+    │
+    ├── [user answers in terminal]
+    │
+    ├── evaluate_answer(question, answer)  → Agent B (Haiku)
+    │       └── returns: {score, strength, improvement}
+    │
+    └── save_to_history(entry)     # orchestrator owns all writes
+            └── coach_history.json
+```
+
+Key architecture decisions:
+- Agent A and Agent B have **separate context windows** — neither knows the other exists
+- The orchestrator passes only what each agent needs — nothing bleeds between them
+- Agent A does **not** read files itself — it receives context from the orchestrator
+- All persistent state (history) is written by the orchestrator, never by agents
 
 ### Agent Loop (`agent.py`)
 ```
@@ -159,11 +201,16 @@ research-synthesizer/
 ├── .venv/              # Python virtual environment (gitignored)
 ├── README.md           # Public-facing project showcase
 ├── CLAUDE.md           # This file — internal context for Claude Code
-└── evals/
-    ├── eval_grounding.py     # ✅ Eval 1: rule-based citation checker
-    ├── eval_factuality.py    # ✅ Eval 2: LLM-as-judge + human-review calibration
-    ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check (3 Haiku calls)
-    └── eval_efficiency.py    # ✅ Eval 4: composite quality / (external calls / baseline 6)
+├── evals/
+│   ├── eval_grounding.py     # ✅ Eval 1: rule-based citation checker
+│   ├── eval_factuality.py    # ✅ Eval 2: LLM-as-judge + human-review calibration
+│   ├── eval_completeness.py  # ✅ Eval 3: rubric-based section + coverage check (3 Haiku calls)
+│   └── eval_efficiency.py    # ✅ Eval 4: composite quality / (external calls / baseline 6)
+└── interview_coach/
+    ├── coach.py              # ✅ Orchestrator — Python router, owns all state
+    ├── question_generator.py # ✅ Agent A — generates calibrated questions (Haiku)
+    ├── evaluator.py          # ✅ Agent B — scores answers 1-5 with feedback (Haiku)
+    └── coach_history.json    # Persistent memory — every session saved here
 ```
 
 ---
@@ -203,6 +250,12 @@ The enforced format: `([Author, Year](URL))` inline at the end of every cited se
 
 Baseline = 6: 3 searches + 3 reads. Formula: `efficiency = composite_quality / (external_calls / 6)`.
 
+### Why the orchestrator reads CLAUDE.md, not Agent A
+Agent A's job is to generate questions — not fetch context. If Agent A read the plan file, it would violate single responsibility and make the system harder to debug (you wouldn't know what context each agent actually received). The orchestrator reads CLAUDE.md once at startup, extracts the Learning Progress Tracker section, and passes it as a parameter to every `generate_question()` call. This keeps Agent A stateless and the context chain inspectable.
+
+### Why the evaluator rubric has explicit calibration notes
+LLM judges default to the harshest interpretation of ambiguous rubric boundaries. "Incomplete" meant "wrong" to the judge even when an answer was correct but brief. Calibration notes attached to the rubric resolve the ambiguity at the source — same principle as fixing the generation layer instead of patching the eval. The 4→5 boundary now requires an explicit "without X, you'd lose Y" framing — a structural signal rather than a vague tone criterion.
+
 ### Why the system prompt has a LANGUAGE DISCIPLINE section (verbatim constraint)
 The agent produced fluent, readable prose that paraphrased and elaborated beyond what sources actually said. "Only state facts from your notes" was insufficient — the agent still synthesised plausible language. Adding "use the exact language from your notes" improved the factuality eval from 67% WARN to 100% PASS.
 
@@ -234,7 +287,8 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 |---|---|---|
 | 1 | Agent foundations (ReAct, tools, memory, logging) | ✅ Complete |
 | 2 | Evals (grounding, factuality, completeness, efficiency) | ✅ Complete |
-| 3 | Agent 2: Multi-agent PM Interview Coach | ⏳ Pending |
+| 3 | Agent 2: Multi-agent PM Interview Coach | ✅ Complete |
+| 3B | LLM orchestrator with dynamic routing | ⏳ Pending |
 | 4 | Meta-evals + Agent Design Doc + interview story | ⏳ Pending |
 
 **Quizzes passed:**
@@ -247,6 +301,8 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - Quiz 6: LLM-as-judge risk + human-in-the-loop mitigation ✅
 - Quiz 7: Rubric design (3-point completeness rubric) ✅
 - Quiz 8: Efficiency metric selection — PM dashboard vs. engineer dashboard ✅
+- Quiz 9: Multi-agent architecture (orchestrator, context separation, shared memory ownership) ✅
+- Quiz 10: Evaluator rubric design (4 criteria, 1–5 scale, calibration notes) ✅
 
 **Merged PRs:**
 - PR #1: `feature/wire-real-tools` — live Tavily + BeautifulSoup ✅
@@ -263,3 +319,5 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - PR #13: `feature/week2-citation-format-standard` — single citation format enforced in system prompt ✅
 - PR #14: `feature/week2-grounding-sentence-split-fix` — grounding eval sentence splitter fix ✅
 - PR #15: `feature/week2-grounding-split-fix-v2` — handle multi-split citation fragments ✅
+- PR #16: `feature/week2-docs-final` — CLAUDE.md + README.md sync through PR #15 ✅
+- PR #17: `feature/week3-interview-coach` — Agent 2: multi-agent PM Interview Coach ✅
