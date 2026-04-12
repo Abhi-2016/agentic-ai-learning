@@ -17,11 +17,13 @@ THE RUBRIC (designed by Abhishek, Quiz 10):
     1 — Off-topic or conceptually wrong
     2 — Correct topic but explanation is confused, wrong on mechanism, or jargon without understanding
     3 — Correct and clear but too brief to stand alone (right answer, not enough detail)
-    4 — Correct, clear, at least one concrete detail or example anchors the explanation
-    5 — All of 4, plus naturally accessible to a non-technical stakeholder
+    4 — Correct, clear, answers what was asked with a concrete PM or real-world anchor
+    5 — All of 4, AND covers both sides: what you gain from the concept AND what goes wrong without it
 
-  Calibration: A brief but correct answer should score ≥ 3. Score 2 only if the explanation is wrong or
-  confused — not merely short. Length alone is not grounds for a 2.
+  Calibration:
+    - Brief but correct → at least 3. Score 2 only if explanation is wrong or confused, not merely short.
+    - Fully answers every part of the question → at least 4.
+    - Score 5 requires the "without X, you'd lose Y" framing explicitly.
 
 WHY IT'S A SEPARATE AGENT:
   Same reason as Agent A — single responsibility. If scoring is too harsh or
@@ -67,11 +69,13 @@ Scoring scale:
 1 — Off-topic or conceptually wrong
 2 — Correct topic but explanation is confused, wrong on the mechanism, or uses jargon without understanding
 3 — Correct and clear but too brief — identifies the right answer without enough detail to stand alone
-4 — Correct, clear, and includes at least one concrete detail or example that anchors the explanation
-5 — All of 4, plus naturally accessible to a non-technical stakeholder without losing accuracy
+4 — Correct, clear, answers what was asked with a concrete PM or real-world anchor
+5 — All of 4, AND explicitly covers both sides: what you gain from the concept AND what goes wrong without it
 
-Calibration note: A brief answer that correctly names the right concept and mechanism should score at least 3.
-Only score 2 if the explanation itself is wrong or confused — not merely short.
+Calibration notes:
+- A brief but correct answer scores at least 3. Score 2 only if the explanation is wrong or confused — not merely short.
+- An answer that fully addresses every part of the question asked scores at least 4.
+- Score 5 requires the "without X, you'd lose Y" framing — naming both the benefit and the cost of not having it.
 
 Respond in exactly this format (three lines, nothing else):
 SCORE: <1|2|3|4|5>
