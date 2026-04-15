@@ -294,7 +294,7 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - **Comments are teaching tools**: Every non-trivial line has a comment mapping to a concept — preserve this
 - **Plan file is source of truth**: `~/.claude/plans/graceful-seeking-lecun.md`
 - **Evals go in `evals/`**: One file per eval, named `eval_<name>.py`
-- **No generated system prompts**: `system_prompt.txt` is always written/edited by Abhishek
+- **System prompts are always written by Abhishek first**: Claude reviews, suggests improvements, and flags gaps — but never generates a system prompt from scratch. This applies to every agent in the project: `system_prompt.txt`, evaluator prompts, orchestrator prompts, Agent A, Agent B, Agent C. If a new agent needs a system prompt, Abhishek writes a first draft, Claude reviews it. No exceptions.
 - **Run commands belong to Abhishek**: After building a feature, provide the commands to run — do NOT run them. Wait for Abhishek to share the output, then discuss results together.
 - **Quizzes gate all code**: Never build a new feature or eval without first quizzing the concept — no exceptions
 

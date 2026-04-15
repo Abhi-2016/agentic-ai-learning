@@ -141,7 +141,9 @@ Critically, each tool description explicitly states **when NOT to use it**. With
 ## Key Concepts Demonstrated
 
 ### 1. System Prompt as a Product Spec
-The system prompt is the agent's job description, operating constraints, and uncertainty-handling playbook — all in one. Written by hand (not generated) to force real architectural decisions:
+The system prompt is the agent's job description, operating constraints, and uncertainty-handling playbook — all in one. Written by hand (not generated) to force real architectural decisions.
+
+**Ground rule — system prompts are always written by Abhishek first.** Claude reviews, suggests improvements, and flags gaps — but never generates a system prompt from scratch. Writing it yourself forces the architectural decisions that matter: what is the agent's goal, what are its boundaries, how does it handle failure? Reading someone else's prompt (or a generated one) skips exactly the thinking a PM needs to do.
 - Specific, measurable stopping condition (3 sources + structured paper ≤ 1000 words)
 - Explicit tool boundaries (when to use each, and when not to)
 - Defined behaviour for 5 distinct failure modes
