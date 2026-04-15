@@ -289,9 +289,32 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Python router orchestration
 
 ### Week 3B — LLM Orchestrator with Dynamic Routing ⏳
-- [ ] Replace Python router with LLM orchestrator
-- [ ] Add third specialist agent to create a real routing decision
-- [ ] Compare Python router vs. LLM orchestrator: latency, cost, failure modes
+
+**The key insight:** Python routes by rules. An LLM orchestrator routes by reasoning.
+
+The Python router in Week 3 works because the flow is fixed. Week 3B adds history-aware routing — the orchestrator reads all past sessions and decides what to focus on next. Python can apply fixed rules ("if score < 3, repeat the topic") but can't reason about patterns ("ReAct scores are improving but stopping conditions are consistently weak — target that gap").
+
+**New architecture:**
+```
+Orchestrator (Claude) reads history + context → decides next action
+    ├── "ask_on_topic: X"  → Agent A → question
+    ├── "suggest_topic"    → Agent C (pattern analyser) → Agent A → question
+    └── "end_session"      → summary → exit
+```
+
+**Four agents, clear scope boundaries:**
+
+| Agent | Role | Input | Output |
+|---|---|---|---|
+| Orchestrator | Session manager | History + learner context | action, topic, reason |
+| Agent A | Question generator | Topic + context | One question |
+| Agent B | Answer evaluator | Question + answer | Score + feedback |
+| Agent C *(new)* | Pattern analyser | Full all-time history | Suggested topic + reason |
+
+- [ ] Quiz: When does an orchestrator need to be an LLM vs. Python? ✅
+- [ ] Build: `topic_suggester.py` — Agent C
+- [ ] Build: LLM orchestrator in `coach.py` — replaces Python `while True` loop
+- [ ] Compare: latency, cost, and failure modes vs. Python router
 
 ### Week 4 — Meta-Evals + Agent Design Doc ⏳
 - [ ] Evaluator calibration: does Agent B's score match a human's?
