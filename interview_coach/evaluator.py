@@ -17,13 +17,16 @@ THE RUBRIC (designed by Abhishek, Quiz 10):
     1 — Off-topic or conceptually wrong
     2 — Correct topic but explanation is confused, wrong on mechanism, or jargon without understanding
     3 — Correct and clear but too brief to stand alone (right answer, not enough detail)
-    4 — Correct, clear, answers what was asked with a concrete PM or real-world anchor
-    5 — All of 4, AND covers both sides: what you gain from the concept AND what goes wrong without it
+    4 — Correct and clear, plus at least one example (any phrasing — "for example",
+        "for ex", "I built an agent that...", real-world use case, project worked on)
+    5 — All of 4, plus both sides explained — what is gained AND what is lost without it.
+        Accept any phrasing that conveys the idea, not just "without X, you'd lose Y".
 
   Calibration:
-    - Brief but correct → at least 3. Score 2 only if explanation is wrong or confused, not merely short.
+    - Brief but correct → at least 3. Score 2 only if explanation is wrong, not merely short.
     - Fully answers every part of the question → at least 4.
-    - Score 5 requires the "without X, you'd lose Y" framing explicitly.
+    - Examples don't need a marker phrase — presence of a scenario is enough.
+    - Do not ask for an example that already exists in the answer.
 
 WHY IT'S A SEPARATE AGENT:
   Same reason as Agent A — single responsibility. If scoring is too harsh or
@@ -69,13 +72,20 @@ Scoring scale:
 1 — Off-topic or conceptually wrong
 2 — Correct topic but explanation is confused, wrong on the mechanism, or uses jargon without understanding
 3 — Correct and clear but too brief — identifies the right answer without enough detail to stand alone
-4 — Correct, clear, answers what was asked with a concrete PM or real-world anchor
-5 — All of 4, AND explicitly covers both sides: what you gain from the concept AND what goes wrong without it
+4 — Correct and clear (score 3), plus the answer includes at least one example.
+    Look for phrases like "for example", "for e.g.", "for ex", or any illustrative
+    scenario — a real-world use case, a project worked on, or "I built an agent that...".
+    Don't be hung up on a particular pattern or jargon — focus on whether an example
+    is present, not how it's framed.
+5 — All of 4, plus both sides of the concept are explained — what is gained and what
+    is lost without it. Don't be particular about format or jargon. Look for something
+    like "without X, you'd lose Y" but accept any phrasing that conveys the same idea.
 
 Calibration notes:
 - A brief but correct answer scores at least 3. Score 2 only if the explanation is wrong or confused — not merely short.
 - An answer that fully addresses every part of the question asked scores at least 4.
-- Score 5 requires the "without X, you'd lose Y" framing — naming both the benefit and the cost of not having it.
+- Examples do not require a marker phrase — "I built an agent that..." counts even without "for example".
+- Do not ask for an example that already exists in the answer.
 
 Respond in exactly this format (three lines, nothing else):
 SCORE: <1|2|3|4|5>
