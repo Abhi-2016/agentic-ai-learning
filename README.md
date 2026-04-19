@@ -5,9 +5,9 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
 ![Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet-D97706?logoColor=white)
 ![Tavily](https://img.shields.io/badge/Search-Tavily%20API-10B981?logoColor=white)
-![PRs Merged](https://img.shields.io/badge/PRs%20Merged-17-brightgreen)
+![PRs Merged](https://img.shields.io/badge/PRs%20Merged-20-brightgreen)
 ![Evals](https://img.shields.io/badge/Evals-4%20of%204%20Built-3B82F6?logoColor=white)
-![Week](https://img.shields.io/badge/Week-3%20Complete-8B5CF6?logoColor=white)
+![Week](https://img.shields.io/badge/Week-3B%20Complete-8B5CF6?logoColor=white)
 
 ---
 
@@ -290,13 +290,11 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Evaluator rubric design + iterative calibration (3 sessions)
 - [x] Python router orchestration
 
-### Week 3B — LLM Orchestrator with Dynamic Routing ⏳
+### Week 3B — LLM Orchestrator with Dynamic Routing ✅
 
 **The key insight:** Python routes by rules. An LLM orchestrator routes by reasoning.
 
-The Python router in Week 3 works because the flow is fixed. Week 3B adds history-aware routing — the orchestrator reads all past sessions and decides what to focus on next. Python can apply fixed rules ("if score < 3, repeat the topic") but can't reason about patterns ("ReAct scores are improving but stopping conditions are consistently weak — target that gap").
-
-**New architecture:**
+**Architecture:**
 ```
 Orchestrator (Claude) reads history + context → decides next action
     ├── "ask_on_topic: X"  → Agent A → question
@@ -311,12 +309,22 @@ Orchestrator (Claude) reads history + context → decides next action
 | Orchestrator | Session manager | History + learner context | action, topic, reason |
 | Agent A | Question generator | Topic + context | One question |
 | Agent B | Answer evaluator | Question + answer | Score + feedback |
-| Agent C *(new)* | Pattern analyser | Full all-time history | Suggested topic + reason |
+| Agent C | Pattern analyser | Full all-time history | Suggested topic + reason |
 
-- [ ] Quiz: When does an orchestrator need to be an LLM vs. Python? ✅
-- [ ] Build: `topic_suggester.py` — Agent C
-- [ ] Build: LLM orchestrator in `coach.py` — replaces Python `while True` loop
-- [ ] Compare: latency, cost, and failure modes vs. Python router
+**Python router vs. LLM orchestrator:**
+
+| Dimension | Python router | LLM orchestrator |
+|---|---|---|
+| Latency | ~0ms | 300–800ms per routing decision |
+| Cost | Free | One Haiku call per turn |
+| Failure mode | Predictable — wrong `if/else` branch | Unpredictable — bad reasoning on context |
+| Debugging | Read the code | Read the reasoning trace |
+| Fix | Change the condition | Change the system prompt |
+
+- [x] Quiz: Python router vs. LLM orchestrator — when to use each ✅
+- [x] Build: `topic_suggester.py` — Agent C ✅
+- [x] Build: LLM orchestrator in `coach.py` ✅
+- [x] Evaluator rubric scores 4–5 rewritten by Abhishek in behaviour-based language ✅
 
 ### Week 4 — Meta-Evals + Agent Design Doc ⏳
 - [ ] Evaluator calibration: does Agent B's score match a human's?
@@ -399,6 +407,9 @@ main (stable — always working)
 | #15 | `feature/week2-grounding-split-fix-v2` | Grounding eval: handle multi-split citation fragments |
 | #16 | `feature/week2-docs-final` | CLAUDE.md + README.md sync through PR #15 |
 | #17 | `feature/week3-interview-coach` | Agent 2: multi-agent PM Interview Coach (3 files) |
+| #18 | `feature/week3-docs-update` | CLAUDE.md + README.md sync through Week 3 |
+| #19 | `feature/week5-9-roadmap-docs` | Weeks 5–9 added to learning roadmap |
+| #20 | `feature/week3b-llm-orchestrator` | Week 3B: LLM orchestrator + Agent C + rubric rewrite |
 
 ---
 
