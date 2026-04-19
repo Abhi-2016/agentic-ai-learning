@@ -250,6 +250,25 @@ The enforced format: `([Author, Year](URL))` inline at the end of every cited se
 
 Baseline = 6: 3 searches + 3 reads. Formula: `efficiency = composite_quality / (external_calls / 6)`.
 
+### Why the Week 3B orchestrator is an LLM, not Python
+The Python router in Week 3 works because the flow is fixed: question → answer → evaluate → save → repeat. No reasoning needed to decide that sequence.
+
+Week 3B adds history-aware routing — the orchestrator reads all past sessions and decides what topic to focus on next. Python can read the JSON file, but it can only apply fixed rules ("if score < 3, repeat"). An LLM orchestrator reasons about patterns: "ReAct scores are improving but stopping conditions are consistently weak — target that gap." That's the distinction:
+
+> **Python routes by rules. An LLM orchestrator routes by reasoning.**
+
+### Why Agent C (Topic Suggester) is separate from the orchestrator
+The orchestrator is a session manager — it sees the current turn and decides the next move. Agent C is a pattern analyser — it looks across all historical sessions to find consistent weak spots. Different scope, different job.
+
+The orchestrator delegates to Agent C when it decides deep analysis is needed, rather than doing pattern analysis itself every turn. This keeps each agent's responsibility narrow:
+
+| Agent | Scope | Input | Output |
+|---|---|---|---|
+| Orchestrator (LLM) | Session manager | Current turn + recent history | action, topic, reason |
+| Agent A | Question generator | Topic + learner context | One question |
+| Agent B | Answer evaluator | Question + answer | Score + feedback |
+| Agent C | Pattern analyser | Full all-time history | Suggested topic + reason |
+
 ### Why the orchestrator reads CLAUDE.md, not Agent A
 Agent A's job is to generate questions — not fetch context. If Agent A read the plan file, it would violate single responsibility and make the system harder to debug (you wouldn't know what context each agent actually received). The orchestrator reads CLAUDE.md once at startup, extracts the Learning Progress Tracker section, and passes it as a parameter to every `generate_question()` call. This keeps Agent A stateless and the context chain inspectable.
 
@@ -275,7 +294,7 @@ For this research accuracy tool, attribution > synthesis. The eval is the instru
 - **Comments are teaching tools**: Every non-trivial line has a comment mapping to a concept — preserve this
 - **Plan file is source of truth**: `~/.claude/plans/graceful-seeking-lecun.md`
 - **Evals go in `evals/`**: One file per eval, named `eval_<name>.py`
-- **No generated system prompts**: `system_prompt.txt` is always written/edited by Abhishek
+- **System prompts are always written by Abhishek first**: Claude reviews, suggests improvements, and flags gaps — but never generates a system prompt from scratch. This applies to every agent in the project: `system_prompt.txt`, evaluator prompts, orchestrator prompts, Agent A, Agent B, Agent C. If a new agent needs a system prompt, Abhishek writes a first draft, Claude reviews it. No exceptions.
 - **Run commands belong to Abhishek**: After building a feature, provide the commands to run — do NOT run them. Wait for Abhishek to share the output, then discuss results together.
 - **Quizzes gate all code**: Never build a new feature or eval without first quizzing the concept — no exceptions
 

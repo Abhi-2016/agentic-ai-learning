@@ -141,7 +141,9 @@ Critically, each tool description explicitly states **when NOT to use it**. With
 ## Key Concepts Demonstrated
 
 ### 1. System Prompt as a Product Spec
-The system prompt is the agent's job description, operating constraints, and uncertainty-handling playbook — all in one. Written by hand (not generated) to force real architectural decisions:
+The system prompt is the agent's job description, operating constraints, and uncertainty-handling playbook — all in one. Written by hand (not generated) to force real architectural decisions.
+
+**Ground rule — system prompts are always written by Abhishek first.** Claude reviews, suggests improvements, and flags gaps — but never generates a system prompt from scratch. Writing it yourself forces the architectural decisions that matter: what is the agent's goal, what are its boundaries, how does it handle failure? Reading someone else's prompt (or a generated one) skips exactly the thinking a PM needs to do.
 - Specific, measurable stopping condition (3 sources + structured paper ≤ 1000 words)
 - Explicit tool boundaries (when to use each, and when not to)
 - Defined behaviour for 5 distinct failure modes
@@ -289,9 +291,32 @@ This project is being built incrementally, with each concept quizzed and underst
 - [x] Python router orchestration
 
 ### Week 3B — LLM Orchestrator with Dynamic Routing ⏳
-- [ ] Replace Python router with LLM orchestrator
-- [ ] Add third specialist agent to create a real routing decision
-- [ ] Compare Python router vs. LLM orchestrator: latency, cost, failure modes
+
+**The key insight:** Python routes by rules. An LLM orchestrator routes by reasoning.
+
+The Python router in Week 3 works because the flow is fixed. Week 3B adds history-aware routing — the orchestrator reads all past sessions and decides what to focus on next. Python can apply fixed rules ("if score < 3, repeat the topic") but can't reason about patterns ("ReAct scores are improving but stopping conditions are consistently weak — target that gap").
+
+**New architecture:**
+```
+Orchestrator (Claude) reads history + context → decides next action
+    ├── "ask_on_topic: X"  → Agent A → question
+    ├── "suggest_topic"    → Agent C (pattern analyser) → Agent A → question
+    └── "end_session"      → summary → exit
+```
+
+**Four agents, clear scope boundaries:**
+
+| Agent | Role | Input | Output |
+|---|---|---|---|
+| Orchestrator | Session manager | History + learner context | action, topic, reason |
+| Agent A | Question generator | Topic + context | One question |
+| Agent B | Answer evaluator | Question + answer | Score + feedback |
+| Agent C *(new)* | Pattern analyser | Full all-time history | Suggested topic + reason |
+
+- [ ] Quiz: When does an orchestrator need to be an LLM vs. Python? ✅
+- [ ] Build: `topic_suggester.py` — Agent C
+- [ ] Build: LLM orchestrator in `coach.py` — replaces Python `while True` loop
+- [ ] Compare: latency, cost, and failure modes vs. Python router
 
 ### Week 4 — Meta-Evals + Agent Design Doc ⏳
 - [ ] Evaluator calibration: does Agent B's score match a human's?
