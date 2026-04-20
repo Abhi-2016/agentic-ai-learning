@@ -114,6 +114,7 @@ ANSWER:
     response = client.messages.create(
         model=MODEL,
         max_tokens=200,
+        temperature=0,        # deterministic scoring — same input always produces same score
         system=SYSTEM_PROMPT,
         messages=[
             {"role": "user", "content": user_message}
