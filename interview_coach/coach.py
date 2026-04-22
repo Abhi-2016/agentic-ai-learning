@@ -79,8 +79,8 @@ Decide what happens next. Your three options:
    and you can see a clear topic to target (never tried, or low scores)
 
 2. suggest_topic — delegate topic selection to a specialist analyser
-   Use when: the history is rich enough that pattern analysis would help
-   (5+ total entries across topics) and you want a data-driven recommendation
+   Use when: there are 5 or more total history entries across topics.
+   Do not analyse topics yourself — always delegate to the specialist.
 
 3. end_session — wrap up the session
    Use when: 5 or more questions have been asked this session,
