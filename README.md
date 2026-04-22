@@ -326,10 +326,19 @@ Orchestrator (Claude) reads history + context → decides next action
 - [x] Build: LLM orchestrator in `coach.py` ✅
 - [x] Evaluator rubric scores 4–5 rewritten by Abhishek in behaviour-based language ✅
 
-### Week 4 — Meta-Evals + Agent Design Doc ⏳
-- [ ] Evaluator calibration: does Agent B's score match a human's?
-- [ ] Evaluator consistency: same answer → same score twice?
-- [ ] Orchestrator accuracy: does it route to the right agent?
+### Week 4 — Meta-Evals + Agent Design Doc ⏳ In Progress
+
+**Key concepts:**
+- **Inter-rater reliability** — consistent scores on identical input (fixed by `temperature=0`)
+- **Score drift** — rubric changes shift historical scores; rubrics must be versioned
+- **Accuracy vs. consistency** — consistency = same input → same output; accuracy = correct routing decision
+
+**What's built:**
+- [x] `temperature=0` in Agent B — deterministic scoring ✅
+- [x] `eval_consistency.py` — runs same Q+A through Agent B 5 times, measures variance ✅
+- [x] `eval_orchestrator.py` — 5 synthetic scenarios, checks routing action accuracy ✅
+- [x] Orchestrator system prompt tightened by Abhishek — `suggest_topic` now triggers at 5+ history entries ✅
+- [ ] Re-run orchestrator eval to confirm Scenario C now passes
 - [ ] Agent Design Doc (PRD equivalent for agents)
 - [ ] End-to-end interview story
 
