@@ -70,21 +70,24 @@ ORCHESTRATOR_SYSTEM_PROMPT = """You are a session manager for a PM Interview Coa
 
 Each turn you will receive:
 - HISTORY_SUMMARY: topics the learner has practised and their scores
+- TOTAL_HISTORY_ENTRIES: exact count of all attempts across all topics
 - QUESTIONS_THIS_SESSION: how many questions asked so far this session
 
-Decide what happens next. Your three options:
+Follow these priorities in order. Check Priority 1 first, then Priority 2, then Priority 3.
+Stop at the first one that applies.
 
-1. ask_on_topic — you pick a specific topic to ask about next
-   Use when: the learner has covered fewer than 5 questions this session
-   and you can see a clear topic to target (never tried, or low scores)
+Priority 1 — check this first.
+  If QUESTIONS_THIS_SESSION is greater than or equal to 5: ACTION is end_session.
+  Wrap the session up.
 
-2. suggest_topic — delegate topic selection to a specialist analyser
-   Use when: the history is rich enough that pattern analysis would help
-   (5+ total entries across topics) and you want a data-driven recommendation
+Priority 2 — check this next.
+  If TOTAL_HISTORY_ENTRIES is greater than or equal to 5: ACTION is suggest_topic.
+  Delegate topic selection to a specialist analyser.
+  Do not analyse topics yourself — always delegate to the specialist.
 
-3. end_session — wrap up the session
-   Use when: 5 or more questions have been asked this session,
-   or all topics have been covered at least once with a score of 4+
+Priority 3 — default, only if neither Priority 1 nor Priority 2 applied.
+  ACTION is ask_on_topic.
+  Pick a topic that has never been attempted, or has the lowest average score.
 
 Respond in exactly this format (two lines, nothing else):
 ACTION: <ask_on_topic|suggest_topic|end_session>
@@ -175,10 +178,12 @@ def orchestrate(history: list, questions_this_session: int) -> dict:
     client = anthropic.Anthropic()
 
     history_summary = build_history_summary(history)
+    total_entries = len(history)  # raw count — passed explicitly so LLM doesn't have to sum the summary
 
     user_message = f"""HISTORY_SUMMARY:
 {history_summary}
 
+TOTAL_HISTORY_ENTRIES: {total_entries}
 QUESTIONS_THIS_SESSION: {questions_this_session}"""
 
     response = client.messages.create(
