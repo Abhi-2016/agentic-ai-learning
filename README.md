@@ -5,9 +5,9 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
 ![Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet-D97706?logoColor=white)
 ![Tavily](https://img.shields.io/badge/Search-Tavily%20API-10B981?logoColor=white)
-![PRs Merged](https://img.shields.io/badge/PRs%20Merged-20-brightgreen)
+![PRs Merged](https://img.shields.io/badge/PRs%20Merged-22-brightgreen)
 ![Evals](https://img.shields.io/badge/Evals-4%20of%204%20Built-3B82F6?logoColor=white)
-![Week](https://img.shields.io/badge/Week-3B%20Complete-8B5CF6?logoColor=white)
+![Week](https://img.shields.io/badge/Week-4%20Complete-8B5CF6?logoColor=white)
 
 ---
 
@@ -217,9 +217,13 @@ research-synthesizer/
 │   ├── eval_completeness.py   # ✅ Eval 3: rubric-based section + coverage check
 │   └── eval_efficiency.py     # ✅ Eval 4: composite quality / (external calls / baseline)
 └── interview_coach/
-    ├── coach.py               # ✅ Orchestrator — Python router, owns all state
+    ├── coach.py               # ✅ Orchestrator — LLM router, owns all state
     ├── question_generator.py  # ✅ Agent A — calibrated question generator (Haiku)
-    └── evaluator.py           # ✅ Agent B — 1–5 answer scorer with feedback (Haiku)
+    ├── evaluator.py           # ✅ Agent B — 1–5 answer scorer with feedback (Haiku)
+    ├── topic_suggester.py     # ✅ Agent C — pattern analyser across all-time history (Haiku)
+    ├── eval_consistency.py    # ✅ Meta-eval: Agent B consistency test (5 runs, variance=0)
+    ├── eval_orchestrator.py   # ✅ Meta-eval: orchestrator accuracy test (5 scenarios, 100% PASS)
+    └── AGENT_DESIGN_DOC.md    # ✅ Agent Design Doc — architecture, failure modes, PM decisions
 ```
 
 ---
@@ -326,21 +330,26 @@ Orchestrator (Claude) reads history + context → decides next action
 - [x] Build: LLM orchestrator in `coach.py` ✅
 - [x] Evaluator rubric scores 4–5 rewritten by Abhishek in behaviour-based language ✅
 
-### Week 4 — Meta-Evals + Agent Design Doc ⏳ In Progress
+### Week 4 — Meta-Evals + Agent Design Doc ✅
 
 **Key concepts:**
 - **Inter-rater reliability** — consistent scores on identical input (fixed by `temperature=0`)
 - **Score drift** — rubric changes shift historical scores; rubrics must be versioned
 - **Accuracy vs. consistency** — consistency = same input → same output; accuracy = correct routing decision
+- **Agent Design Doc** — the PM equivalent of a PRD for an agent system: architecture, memory model, decision logic, failure modes, known limitations, PM decision trail
 
 **What's built:**
 - [x] `temperature=0` in Agent B — deterministic scoring ✅
 - [x] `eval_consistency.py` — runs same Q+A through Agent B 5 times, measures variance ✅
 - [x] `eval_orchestrator.py` — 5 synthetic scenarios, checks routing action accuracy ✅
-- [x] Orchestrator system prompt tightened by Abhishek — `suggest_topic` now triggers at 5+ history entries ✅
-- [ ] Re-run orchestrator eval to confirm Scenario C now passes
-- [ ] Agent Design Doc (PRD equivalent for agents)
+- [x] Orchestrator routing fix — explicit priority order (P1→P2→P3) + `TOTAL_HISTORY_ENTRIES` injection ✅
+- [x] `AGENT_DESIGN_DOC.md` — architecture, memory model, decision logic, failure modes, PM decision trail ✅
 - [ ] End-to-end interview story
+
+**Key findings:**
+- Orchestrator accuracy: 60% WARN → 100% PASS after routing fix
+- Root causes: overlapping conditions (Scenario C) + LLM arithmetic error on history summary (Scenario E)
+- Fix principle: sequential decision rules eliminate LLM conflict resolution; pre-computed integers eliminate counting errors
 
 ### Week 5 — MCP: The New Integration Standard (and Its Limits) ⏳
 Model Context Protocol — Anthropic's open standard for connecting agents to tools. Becoming the "USB-C for agent tools" as major SaaS providers publish MCP servers. But it comes with a real tradeoff: loading a large tool catalogue burns thousands of tokens before the agent does anything useful, and model performance degrades with 50+ tools in context.
@@ -419,6 +428,7 @@ main (stable — always working)
 | #18 | `feature/week3-docs-update` | CLAUDE.md + README.md sync through Week 3 |
 | #19 | `feature/week5-9-roadmap-docs` | Weeks 5–9 added to learning roadmap |
 | #20 | `feature/week3b-llm-orchestrator` | Week 3B: LLM orchestrator + Agent C + rubric rewrite |
+| #22 | `feature/week4-meta-evals` | Orchestrator routing fix (60%→100%) + Agent Design Doc |
 
 ---
 
